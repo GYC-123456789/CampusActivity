@@ -1,5 +1,5 @@
 @startuml
-title CampusCompanionBackend Layered Class Diagram
+title CampusHubBackend Layered Class Diagram
 
 skinparam backgroundColor white
 skinparam shadowing false

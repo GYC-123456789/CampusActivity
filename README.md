@@ -1,4 +1,4 @@
-# 校内活动预约与分享平台 - Campus Activity
+# 校内活动预约与分享平台 - CampusHub
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.0-brightgreen.svg)](https://spring.io/projects/spring-boot)
@@ -10,7 +10,7 @@
 
 ## 项目概述
 
-校内活动预约与分享平台（Campus Activity）是一款面向校园用户的综合性社交平台，旨在解决校园内学生之间组团进行各类活动（如运动、聚餐、学习、娱乐等）的需求。系统采用前后端分离架构，提供**移动端 App**、**Web 前端**、**Java 后端**和**Python AI 智能体**四端支持。
+校内活动预约与分享平台（CampusHub）是一款面向校园用户的综合性社交平台，旨在解决校园内学生之间组团进行各类活动（如运动、聚餐、学习、娱乐等）的需求。系统采用前后端分离架构，提供**移动端 App**、**Web 前端**、**Java 后端**和**Python AI 智能体**四端支持。
 
 ### 核心功能
 
@@ -122,7 +122,7 @@
 CREATE DATABASE campus_companion CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-修改 `CampusActivityBackend/src/main/resources/application.properties`：
+修改 `CampusHubBackend/src/main/resources/application.properties`：
 
 ```properties
 spring.datasource.username=your_username
@@ -133,7 +133,7 @@ spring.datasource.password=your_password
 
 ### 2. AI 智能体配置
 
-创建 `CampusActivityAgent/.env`：
+创建 `CampusHubAgent/.env`：
 
 ```env
 # 硅基流动 API
@@ -150,7 +150,7 @@ AMAP_MCP_URL=https://mcp.api-inference.modelscope.net/your_mcp_id/sse
 安装 Python 依赖：
 
 ```bash
-cd CampusActivityAgent
+cd CampusHubAgent
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -177,16 +177,16 @@ bash stop-frontend.sh
 
 ```bash
 # 1. Python AI Agent
-cd CampusActivityAgent
+cd CampusHubAgent
 source venv/bin/activate
 python -m uvicorn app.main:app --host 0.0.0.0 --port 5001
 
 # 2. Java 后端
-cd CampusActivityBackend
+cd CampusHubBackend
 ./mvnw spring-boot:run
 
 # 3. Web 前端
-cd CampusActivityWeb
+cd CampusHubWeb
 npm install && npm run dev
 ```
 
@@ -198,8 +198,8 @@ npm install && npm run dev
 ## 项目结构
 
 ```
-CampusActivity/
-├── CampusActivityBackend/         # Java 后端 (Spring Boot)
+CampusHub/
+├── CampusHubBackend/         # Java 后端 (Spring Boot)
 │   └── src/main/java/.../
 │       ├── controller/             # REST 控制器
 │       ├── service/                # 业务逻辑层
@@ -210,7 +210,7 @@ CampusActivity/
 │       ├── config/                 # 安全、CORS 等配置
 │       └── exception/              # 全局异常处理
 │
-├── CampusActivityAgent/           # Python AI 智能体
+├── CampusHubAgent/           # Python AI 智能体
 │   ├── app/
 │   │   ├── main.py                 # FastAPI 入口
 │   │   ├── agent.py                # 多智能体架构（主 Agent + 子 Agent）
@@ -226,7 +226,7 @@ CampusActivity/
 │   ├── .env                        # 敏感配置（已 gitignore）
 │   └── requirements.txt
 │
-├── CampusActivityWeb/             # Vue 3 Web 前端
+├── CampusHubWeb/             # Vue 3 Web 前端
 │   └── src/
 │       ├── views/                  # 页面（AI、订单、动态、用户等）
 │       ├── services/               # API 服务层
@@ -234,7 +234,7 @@ CampusActivity/
 │       ├── router/                 # 路由配置
 │       └── components/             # 通用组件
 │
-├── CampusActivityApp/             # uni-app 移动端
+├── CampusHubApp/             # uni-app 移动端
 ├── docs/                           # 项目文档
 ├── start-backend.sh                # 后端一键启动脚本
 ├── stop-backend.sh                 # 后端停止脚本
