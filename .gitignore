@@ -35,6 +35,10 @@ build/
 .idea/
 .claude/
 
+### Local automation artifacts ###
+.github/java-upgrade/
+.github/modernize/
+
 
 
 ### trae ###
@@ -68,6 +72,7 @@ runlogs/
 .m2/
 .npm-cache/
 .npm-appdata/
+**/.vite/
 
 ### Sensitive local env variants ###
 .env*
