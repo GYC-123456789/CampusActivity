@@ -1,4 +1,5 @@
 function getLocalIP() {
+  // CI demo: this app config can switch between local dev and the remote server.
   // #ifdef H5
   return 'localhost'
   // #endif
