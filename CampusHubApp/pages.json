@@ -97,6 +97,12 @@
       "style": {
         "navigationBarTitleText": "AI助手"
       }
+    },
+    {
+      "path": "pages/test/network",
+      "style": {
+        "navigationBarTitleText": "网络诊断"
+      }
     }
   ],
   "tabBar": {
@@ -135,6 +141,10 @@
       {
         "name": "首页",
         "path": "pages/index/index"
+      },
+      {
+        "name": "网络诊断",
+        "path": "pages/test/network"
       }
     ]
   }

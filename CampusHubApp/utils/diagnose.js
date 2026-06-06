@@ -40,19 +40,19 @@ export async function diagnoseNetwork() {
     results.network.error = e.message || '获取网络状态失败'
   }
   
-  // 测试API连接
+  // 测试真实后端 API 连接
   if (results.network.available) {
     try {
       const response = await new Promise((resolve, reject) => {
         uni.request({
-          url: config.baseURL.replace('/api/v1', '/health'),
+          url: `${config.baseURL}/orders?page=1&size=1`,
           method: 'GET',
           timeout: 5000,
           success: (res) => {
-            if (res.statusCode === 200) {
+            if (res.statusCode === 200 && res.data && res.data.code === 200) {
               resolve(res.data)
             } else {
-              reject(new Error(`HTTP ${res.statusCode}`))
+              reject(new Error(`HTTP ${res.statusCode}: ${JSON.stringify(res.data)}`))
             }
           },
           fail: reject

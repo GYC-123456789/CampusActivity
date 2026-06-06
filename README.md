@@ -195,6 +195,17 @@ npm install && npm run dev
 - Python Agent：`http://localhost:5001`
 - Web 前端：`http://localhost:5173`
 
+## CI/CD 与生产部署
+
+项目已提供基于 Docker 镜像包上传的 CI/CD 流程，适配服务器外网不稳定的部署环境。
+
+- CI：`.github/workflows/ci.yml`
+- 手动部署：`.github/workflows/deploy.yml`
+- 本地构建/发布脚本：`scripts/`
+- 服务器部署/回滚脚本：`scripts/server/`
+
+完整说明见：[CampusHub CI/CD](docs/CI-CD.md)。
+
 ## 项目结构
 
 ```

@@ -24,7 +24,7 @@ services:
   agent:
     build:
       context: ./CampusHubAgent
-    image: campushub-agent:latest
+    image: campushub-agent:${CAMPUSHUB_IMAGE_TAG:-latest}
     container_name: campushub_agent
     restart: unless-stopped
     environment:
@@ -46,7 +46,7 @@ services:
   backend:
     build:
       context: ./CampusHubBackend
-    image: campushub-backend:latest
+    image: campushub-backend:${CAMPUSHUB_IMAGE_TAG:-latest}
     container_name: campushub_backend
     restart: unless-stopped
     environment:
@@ -74,7 +74,7 @@ services:
   frontend:
     build:
       context: ./CampusHubWeb
-    image: campushub-web:latest
+    image: campushub-web:${CAMPUSHUB_IMAGE_TAG:-latest}
     container_name: campushub_frontend
     restart: unless-stopped
     depends_on:

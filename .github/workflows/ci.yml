@@ -97,3 +97,21 @@ jobs:
       - name: Validate uni-app JSON files
         run: |
           node -e "const fs=require('fs'); for (const f of ['CampusHubApp/package.json','CampusHubApp/manifest.json','CampusHubApp/pages.json']) { JSON.parse(fs.readFileSync(f,'utf8')); console.log(f + ' ok') }"
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs:
+      - backend
+      - web
+      - agent
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build production images
+        run: |
+          tag="ci-${GITHUB_SHA::7}"
+          docker build -t "campushub-agent:$tag" CampusHubAgent
+          docker build -t "campushub-backend:$tag" CampusHubBackend
+          docker build -t "campushub-web:$tag" CampusHubWeb

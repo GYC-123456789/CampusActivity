@@ -13,6 +13,7 @@ function getLocalIP() {
 }
 
 const localIP = getLocalIP()
+const prodOrigin = 'http://124.220.81.104'
 
 const devConfig = {
   baseURL: `http://${localIP}:8080/api/v1`,
@@ -21,8 +22,8 @@ const devConfig = {
 }
 
 const prodConfig = {
-  baseURL: 'http://117.72.218.137:8080/api/v1',
-  fileBaseURL: 'http://117.72.218.137:8080',
+  baseURL: `${prodOrigin}/api/v1`,
+  fileBaseURL: prodOrigin,
   debug: false
 }
 

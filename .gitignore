@@ -46,6 +46,8 @@ build/
 .idea/misc.xml
 
 *.tar
+*.tar.gz
+artifacts/
 
 .DS_Store
 *.log
