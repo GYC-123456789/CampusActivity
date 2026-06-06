@@ -1,133 +1,181 @@
-# CampusHub CI/CD
+# CampusHub CI/CD 实现说明
 
-本文档说明 CampusHub 当前推荐的发布方式
+本文档记录 CampusHub 当前仓库中已经实现的 CI/CD 配置、脚本和服务器部署方式。
 
-## 1. 当前已实现内容总览
+## 1. 实现范围
 
-当前项目已经实现一套适合本项目服务器环境的 CI/CD 流程：
+CampusHub 当前使用 GitHub Actions 作为 CI/CD 平台。
 
-- CI：代码推送或 PR 时自动检查 Web、Java 后端、Python Agent、App 配置和 Docker 镜像构建。
-- CD：通过 GitHub Actions 的 `workflow_dispatch` 手动触发生产发布。
-- 发布方式：GitHub Actions 或本地机器构建 Docker 镜像，打包上传到服务器，服务器只执行 `docker load` 和 `docker compose up`。
-- 版本标识：生产镜像默认使用 Git commit 短 SHA 作为 release tag。
-- 回滚方式：服务器保留当前 tag 和上一个 tag，可通过脚本回滚。
-- 验证方式：发布后自动执行 smoke test，检查首页和核心 API。
+- CI workflow：`.github/workflows/ci.yml`
+- Deploy workflow：`.github/workflows/deploy.yml`
+- 生产编排文件：`docker-compose.prod.yml`
+- 生产环境变量示例：`.env.prod.example`
+- 本地构建与部署脚本：`scripts/*.ps1`
+- 服务器端部署脚本：`scripts/server/*.sh`
 
-这套流程避免了服务器外网不稳定导致的依赖安装、镜像拉取失败问题。
-
-## 2. 推荐开发流程
-
-日常开发建议按这个顺序：
-
-```text
-main
-  -> 新建 feature 分支
-  -> 本地开发和自测
-  -> git commit
-  -> git push
-  -> GitHub CI 自动检查
-  -> 合并回 main
-  -> 手动触发 Deploy workflow
-  -> 发布到服务器
-```
-
-示例：
-
-```bash
-git checkout -b feature/order-filter
-git add .
-git commit -m "Add order filter"
-git push origin feature/order-filter
-```
-
-合并到 `main` 后，再到 GitHub Actions 中手动触发生产发布。
-
-## 3. 推荐发布链路
-
-服务器外网访问不稳定，所以生产发布不依赖服务器拉源码、拉依赖或拉镜像。
-
-推荐链路：
-
-```text
-GitHub Actions 或本地机器构建 Docker 镜像
-  -> docker save 打包镜像
-  -> scp 上传到服务器
-  -> 服务器 docker load
-  -> docker compose 按 release tag 重启服务
-  -> smoke test 验证网页和 API
-```
-
-生产服务器路径：
-
-```text
-/home/ubuntu/CampusHub
-```
-
-真实密钥文件：
-
-```text
-/home/ubuntu/CampusHub/.env.prod
-```
-
-该文件不要提交到 Git。
-
-服务器上的生产入口：
+当前生产入口：
 
 ```text
 http://124.220.81.104/
 ```
 
-当前默认 smoke test 使用服务器公网 IP：
+生产服务器目录：
 
 ```text
-http://124.220.81.104
+/home/ubuntu/CampusHub
 ```
 
-## 4. GitHub Actions
+## 2. CI Workflow
 
-### CI
+CI 文件位于：
 
-`.github/workflows/ci.yml` 会在 push、PR、手动触发时检查：
-
-- Java 后端能否编译
-- Web 前端能否构建
-- Agent 能否安装依赖并导入 FastAPI app
-- App 端 JSON 配置能否解析
-- 三个生产 Docker 镜像能否构建
+```text
+.github/workflows/ci.yml
+```
 
 触发方式：
 
 ```text
-push 到 main
 pull_request
+push 到 main
 workflow_dispatch
 ```
 
-CI 不部署，只回答一个问题：这次代码是否具备构建和进入发布流程的基本条件。
+CI 包含 5 个 job。
 
-### CD
+### Backend
 
-`.github/workflows/deploy.yml` 只支持手动触发：
+工作目录：
 
 ```text
-Actions -> Deploy -> Run workflow
+CampusHubBackend
 ```
 
-可选输入：
+执行内容：
 
-- `release_tag`：留空则默认使用当前 Git commit 短 SHA
-- `public_base_url`：默认 `http://124.220.81.104`
+```text
+使用 Temurin JDK 21
+执行 ./mvnw -DskipTests compile
+```
 
-需要在 GitHub 仓库 Secrets 中配置：
+作用：验证 Java 后端可以编译。
+
+### Web
+
+工作目录：
+
+```text
+CampusHubWeb
+```
+
+执行内容：
+
+```text
+使用 Node.js 22
+执行 npm ci
+执行 npm run build
+```
+
+作用：验证 Web 前端可以安装依赖并构建。
+
+### Agent
+
+工作目录：
+
+```text
+CampusHubAgent
+```
+
+执行内容：
+
+```text
+使用 Python 3.11
+执行 pip install -r requirements.txt
+执行 python -s -c "import app.main; print(app.main.app.title)"
+```
+
+CI 中使用：
+
+```text
+SILICONFLOW_API_KEY=ci-dummy-key
+PYTHONNOUSERSITE=1
+```
+
+作用：验证 Python Agent 依赖安装和 FastAPI 应用导入。
+
+### App Config
+
+执行内容：
+
+```text
+使用 Node.js 22
+解析 CampusHubApp/package.json
+解析 CampusHubApp/manifest.json
+解析 CampusHubApp/pages.json
+```
+
+作用：验证 uni-app 端核心 JSON 配置合法。
+
+### Docker Build
+
+依赖 job：
+
+```text
+Backend
+Web
+Agent
+```
+
+执行内容：
+
+```text
+docker build -t campushub-agent:<ci-tag> CampusHubAgent
+docker build -t campushub-backend:<ci-tag> CampusHubBackend
+docker build -t campushub-web:<ci-tag> CampusHubWeb
+```
+
+作用：验证三个生产镜像可以构建。
+
+## 3. Deploy Workflow
+
+Deploy 文件位于：
+
+```text
+.github/workflows/deploy.yml
+```
+
+触发方式：
+
+```text
+workflow_dispatch
+```
+
+该 workflow 只在 `main` 分支运行：
+
+```text
+github.ref == 'refs/heads/main'
+```
+
+输入参数：
+
+```text
+release_tag          可选；为空时使用当前 Git commit 短 SHA
+public_base_url      可选；默认 http://124.220.81.104
+use_existing_bundle  可选；默认 false
+```
+
+需要配置的 GitHub Actions Secrets：
 
 ```text
 DEPLOY_HOST      124.220.81.104
 DEPLOY_USER      ubuntu
 DEPLOY_PORT      22
-DEPLOY_SSH_KEY   可登录服务器的私钥
+DEPLOY_SSH_KEY   GitHub Actions 连接服务器用的 SSH 私钥
 ```
 
-CD workflow 的实际步骤：
+### 标准模式
+
+当 `use_existing_bundle=false` 时，Deploy workflow 执行：
 
 ```text
 1. Checkout 代码
@@ -135,29 +183,45 @@ CD workflow 的实际步骤：
 3. 构建 campushub-agent:<tag>
 4. 构建 campushub-backend:<tag>
 5. 构建 campushub-web:<tag>
-6. docker save 并 gzip 成镜像包
-7. 通过 SSH/SCP 上传到服务器
-8. 在服务器执行 deploy-release.sh
-9. 服务器 docker load
-10. docker compose --no-build 启动新版本
-11. GitHub Runner 从公网执行 smoke test
+6. docker save 并 gzip 成 artifacts/campushub-images-<tag>.tar.gz
+7. 通过 SCP 上传镜像包、docker-compose.prod.yml 和服务器脚本
+8. SSH 到服务器执行 scripts/server/deploy-release.sh
+9. 执行 External smoke test
 ```
 
-发布成功后，服务器会记录当前 tag：
+### 预上传镜像包模式
+
+当 `use_existing_bundle=true` 时，Deploy workflow 执行：
 
 ```text
-/home/ubuntu/CampusHub/.env.release
+1. Checkout 代码
+2. 解析 release tag
+3. 跳过 GitHub Runner 上的镜像构建
+4. 跳过 GitHub Runner 上的镜像打包
+5. 跳过大镜像包上传
+6. 上传 docker-compose.prod.yml 和服务器脚本
+7. 使用服务器上已有的 releases/campushub-images-<tag>.tar 或 .tar.gz
+8. SSH 到服务器执行 scripts/server/deploy-release.sh
+9. 执行 External smoke test
 ```
 
-上一个 tag 会记录在：
+预上传镜像包由本地脚本完成：
 
-```text
-/home/ubuntu/CampusHub/.env.release.previous
+```powershell
+.\scripts\build-images.ps1 -Tag <tag>
+.\scripts\save-images.ps1 -Tag <tag>
+.\scripts\preload-release-bundle.ps1 -Tag <tag>
 ```
 
-## 5. 镜像版本规则
+触发预上传模式 Deploy：
 
-生产 compose 中三个服务都支持镜像 tag：
+```powershell
+.\scripts\run-deploy-workflow.ps1 -ReleaseTag <tag> -UseExistingBundle -PublicBaseUrl http://124.220.81.104
+```
+
+## 4. 镜像和 Release Tag
+
+生产 compose 中的业务服务镜像通过 `CAMPUSHUB_IMAGE_TAG` 指定版本：
 
 ```yaml
 campushub-agent:${CAMPUSHUB_IMAGE_TAG:-latest}
@@ -165,178 +229,218 @@ campushub-backend:${CAMPUSHUB_IMAGE_TAG:-latest}
 campushub-web:${CAMPUSHUB_IMAGE_TAG:-latest}
 ```
 
-CI/CD 发布时会把 `CAMPUSHUB_IMAGE_TAG` 设置为 release tag。默认 release tag 是当前 Git commit 短 SHA，例如：
+服务器当前 release 记录在：
 
 ```text
-a1b2c3d
+/home/ubuntu/CampusHub/.env.release
 ```
 
-这样可以明确知道服务器当前跑的是哪次提交，也方便回滚。
-
-## 6. 本地手动发布
-
-在 Windows PowerShell 中执行。
-
-### 构建镜像
-
-```powershell
-.\scripts\build-images.ps1
-```
-
-如果 Windows 拦截脚本执行，可以使用：
-
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\scripts\build-images.ps1
-```
-
-默认 tag 是当前 Git 短 SHA。也可以指定：
-
-```powershell
-.\scripts\build-images.ps1 -Tag test-001
-```
-
-同时打 `latest`：
-
-```powershell
-.\scripts\build-images.ps1 -AlsoLatest
-```
-
-### 保存镜像包
-
-```powershell
-.\scripts\save-images.ps1
-```
-
-输出在：
+内容格式：
 
 ```text
-artifacts/campushub-images-<tag>.tar
+CAMPUSHUB_IMAGE_TAG=<tag>
 ```
 
-### 上传并部署
-
-```powershell
-.\scripts\deploy-images.ps1
-```
-
-指定 tag：
-
-```powershell
-.\scripts\deploy-images.ps1 -Tag test-001
-```
-
-部署脚本会上传镜像包、同步 compose 和服务器脚本，然后远程执行发布。
-
-本地手动部署适合两种场景：
-
-- GitHub Actions 暂时不可用。
-- 你想学习完整镜像构建和上传过程。
-
-### 本地冒烟测试
-
-```powershell
-.\scripts\smoke-test.ps1
-```
-
-或：
-
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1
-```
-
-测试内容：
-
-- 首页：`http://124.220.81.104/`
-- API：`/api/v1/orders?page=1&size=1`
-
-## 7. 服务器端命令
-
-### 查看服务
-
-```bash
-cd /home/ubuntu/CampusHub
-sudo docker compose -f docker-compose.prod.yml --env-file .env.prod ps
-```
-
-如果要按当前 release tag 查看：
-
-```bash
-cd /home/ubuntu/CampusHub
-export CAMPUSHUB_IMAGE_TAG="$(sed -n 's/^CAMPUSHUB_IMAGE_TAG=//p' .env.release)"
-sudo -E docker compose -f docker-compose.prod.yml --env-file .env.prod ps
-```
-
-### 回滚
-
-回滚到上一个版本：
-
-```bash
-cd /home/ubuntu/CampusHub
-scripts/server/rollback-release.sh
-```
-
-回滚到指定版本：
-
-```bash
-cd /home/ubuntu/CampusHub
-scripts/server/rollback-release.sh <release-tag>
-```
-
-### 服务器端脚本说明
+上一个 release 记录在：
 
 ```text
-scripts/server/deploy-release.sh
+/home/ubuntu/CampusHub/.env.release.previous
 ```
 
-加载镜像包，写入 `.env.release`，用指定 tag 启动生产服务，并执行服务器内部 smoke test。
+## 5. 本地脚本
+
+### build-images.ps1
+
+路径：
 
 ```text
-scripts/server/rollback-release.sh
+scripts/build-images.ps1
 ```
 
-回滚到 `.env.release.previous` 记录的上一个版本，或回滚到指定 tag。
+作用：构建三个业务镜像。
+
+示例：
+
+```powershell
+.\scripts\build-images.ps1 -Tag demo-001
+```
+
+构建镜像：
 
 ```text
-scripts/server/smoke-test.sh
+campushub-agent:demo-001
+campushub-backend:demo-001
+campushub-web:demo-001
 ```
 
-检查首页和 `/api/v1/orders?page=1&size=1`。
+### save-images.ps1
 
-由于服务器之前存在 TUN 代理影响公网回包，服务器内部 smoke test 默认使用：
+路径：
+
+```text
+scripts/save-images.ps1
+```
+
+作用：把三个业务镜像保存为 tar 包。
+
+示例：
+
+```powershell
+.\scripts\save-images.ps1 -Tag demo-001
+```
+
+输出：
+
+```text
+artifacts/campushub-images-demo-001.tar
+```
+
+### preload-release-bundle.ps1
+
+路径：
+
+```text
+scripts/preload-release-bundle.ps1
+```
+
+作用：把本地镜像包预上传到服务器 release 目录，并同步部署文件。
+
+示例：
+
+```powershell
+.\scripts\preload-release-bundle.ps1 -Tag demo-001
+```
+
+服务器目标路径：
+
+```text
+/home/ubuntu/CampusHub/releases/campushub-images-demo-001.tar
+```
+
+### run-deploy-workflow.ps1
+
+路径：
+
+```text
+scripts/run-deploy-workflow.ps1
+```
+
+作用：触发 GitHub Actions Deploy workflow，并等待 workflow 结束。
+
+示例：
+
+```powershell
+.\scripts\run-deploy-workflow.ps1 -ReleaseTag demo-001 -UseExistingBundle -PublicBaseUrl http://124.220.81.104
+```
+
+### deploy-images.ps1
+
+路径：
+
+```text
+scripts/deploy-images.ps1
+```
+
+作用：从本地直接上传镜像包并在服务器执行部署脚本。
+
+示例：
+
+```powershell
+.\scripts\deploy-images.ps1 -Tag demo-001 -PublicBaseUrl http://124.220.81.104
+```
+
+### smoke-test.ps1
+
+路径：
+
+```text
+scripts/smoke-test.ps1
+```
+
+作用：从本地访问公网入口，验证首页和核心 API。
+
+示例：
+
+```powershell
+.\scripts\smoke-test.ps1 -BaseUrl http://124.220.81.104
+```
+
+验证内容：
+
+```text
+http://124.220.81.104/
+http://124.220.81.104/api/v1/orders?page=1&size=1
+```
+
+该脚本包含重试逻辑，用于处理服务刚重启时短暂未 ready 的情况。
+
+## 6. 服务器端脚本
+
+服务器端脚本目录：
+
+```text
+/home/ubuntu/CampusHub/scripts/server
+```
+
+仓库路径：
+
+```text
+scripts/server
+```
+
+### deploy-release.sh
+
+作用：
+
+```text
+1. 读取 release tag 和镜像包路径
+2. docker load 加载镜像
+3. 写入 .env.release
+4. 使用 docker compose up -d --no-build 启动服务
+5. 执行服务器内部 smoke test
+```
+
+### rollback-release.sh
+
+作用：回滚到 `.env.release.previous` 中记录的上一个 release，或回滚到指定 tag。
+
+### smoke-test.sh
+
+作用：在服务器内部检查首页和 API。
+
+默认内部地址：
 
 ```text
 http://127.0.0.1
 ```
 
-外部公网 smoke test 由 GitHub Actions Runner 或本地机器执行。
+## 7. 服务器目录
 
-## 8. 生产服务器目录约定
+生产服务器目录结构：
 
 ```text
 /home/ubuntu/CampusHub/
-  .env.prod                  # 生产密钥和环境变量，不提交
-  .env.release               # 当前发布 tag
-  .env.release.previous      # 上一个发布 tag
+  .env.prod
+  .env.release
+  .env.release.previous
   docker-compose.prod.yml
-  releases/                  # 镜像包
-  backups/                   # 回滚记录
-  scripts/server/            # 服务器部署工具
+  releases/
+  backups/
+  scripts/server/
 ```
 
 Docker volume：
 
 ```text
-campushub_db_data            # MySQL 数据
-campushub_backend_uploads    # 用户上传文件
+campushub_db_data
+campushub_backend_uploads
 ```
 
-发布和回滚不会主动清空数据库和上传文件。
+## 8. 当前实现边界
 
-## 9. 注意事项
-
-- `.env.prod` 只放在服务器，不进 Git。
-- `.env.prod.example` 只保存示例值和字段说明。
-- 不要把 MySQL、后端 8080、Agent 5001 直接暴露到公网。
-- 当前公网入口只开放 HTTP 80。
-- 如果后续启用 HTTPS，需要新增 443 安全组规则、证书申请和 Nginx HTTPS 配置。
-- 当前服务器上的 Clash/Mihomo TUN 代理已经关闭，避免影响公网 80 回包。
+- CI workflow 会在 PR、push 到 main、手动触发时运行。
+- Deploy workflow 由 `workflow_dispatch` 手动触发。
+- 仓库中的 workflow 不负责创建或修改 GitHub branch protection rule。
+- 是否强制阻止失败 PR 合并，由 GitHub 仓库设置中的分支保护或 ruleset 决定。
+- `.env.prod` 只保存在服务器，不提交到 Git。
+- 生产入口当前使用 HTTP 80。
