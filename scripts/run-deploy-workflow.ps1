@@ -2,6 +2,7 @@ param(
   [string]$PublicBaseUrl = "http://124.220.81.104",
   [string]$Ref = "main",
   [string]$ReleaseTag = "",
+  [switch]$UseExistingBundle,
   [switch]$NoWatch
 )
 
@@ -19,7 +20,8 @@ Assert-Command gh
 $args = @(
   "workflow", "run", "deploy.yml",
   "--ref", $Ref,
-  "-f", "public_base_url=$PublicBaseUrl"
+  "-f", "public_base_url=$PublicBaseUrl",
+  "-f", "use_existing_bundle=$($UseExistingBundle.IsPresent.ToString().ToLower())"
 )
 
 if ($ReleaseTag) {
@@ -34,6 +36,7 @@ if ($ReleaseTag) {
 } else {
   Write-Host "  release_tag     : short Git SHA from GitHub Actions"
 }
+Write-Host "  existing bundle : $($UseExistingBundle.IsPresent)"
 Write-Host ""
 
 gh @args

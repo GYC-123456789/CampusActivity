@@ -11,6 +11,10 @@ on:
         description: "Public URL used for smoke tests."
         required: false
         default: "http://124.220.81.104"
+      use_existing_bundle:
+        description: "Use an image bundle already uploaded to releases/campushub-images-<tag>.tar or .tar.gz."
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -26,6 +30,7 @@ jobs:
       DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
       DEPLOY_PATH: /home/ubuntu/CampusHub
       PUBLIC_BASE_URL: ${{ inputs.public_base_url }}
+      USE_EXISTING_BUNDLE: ${{ inputs.use_existing_bundle }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,12 +46,14 @@ jobs:
           echo "Using release tag: $tag"
 
       - name: Build Docker images
+        if: inputs.use_existing_bundle != 'true'
         run: |
           docker build -t "campushub-agent:$RELEASE_TAG" CampusHubAgent
           docker build -t "campushub-backend:$RELEASE_TAG" CampusHubBackend
           docker build -t "campushub-web:$RELEASE_TAG" CampusHubWeb
 
       - name: Bundle Docker images
+        if: inputs.use_existing_bundle != 'true'
         run: |
           mkdir -p artifacts
           docker save \
@@ -87,10 +94,33 @@ jobs:
             scripts/server/smoke-test.sh \
             "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/scripts/server/"
 
+      - name: Upload deployment files only
+        if: inputs.use_existing_bundle == 'true'
+        run: |
+          scp -P "$DEPLOY_PORT" \
+            docker-compose.prod.yml \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/docker-compose.prod.yml"
+
+          scp -P "$DEPLOY_PORT" \
+            scripts/server/deploy-release.sh \
+            scripts/server/rollback-release.sh \
+            scripts/server/smoke-test.sh \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/scripts/server/"
+
       - name: Deploy release
         run: |
+          if [ "$USE_EXISTING_BUNDLE" = "true" ]; then
+            remote_bundle="releases/campushub-images-$RELEASE_TAG.tar"
+            if ! ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "test -f '$DEPLOY_PATH/$remote_bundle'"; then
+              remote_bundle="releases/campushub-images-$RELEASE_TAG.tar.gz"
+            fi
+            ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "test -f '$DEPLOY_PATH/$remote_bundle'"
+          else
+            remote_bundle="releases/campushub-images-$RELEASE_TAG.tar.gz"
+          fi
+
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd '$DEPLOY_PATH' && chmod +x scripts/server/*.sh && scripts/server/deploy-release.sh '$RELEASE_TAG' 'releases/campushub-images-$RELEASE_TAG.tar.gz' '$PUBLIC_BASE_URL'"
+            "cd '$DEPLOY_PATH' && chmod +x scripts/server/*.sh && scripts/server/deploy-release.sh '$RELEASE_TAG' '$remote_bundle' '$PUBLIC_BASE_URL'"
 
       - name: External smoke test
         run: |
