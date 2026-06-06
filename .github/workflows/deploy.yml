@@ -79,6 +79,7 @@ jobs:
             "mkdir -p '$DEPLOY_PATH/releases' '$DEPLOY_PATH/backups' '$DEPLOY_PATH/scripts/server'"
 
       - name: Upload release bundle and deployment files
+        if: inputs.use_existing_bundle != 'true'
         run: |
           scp -P "$DEPLOY_PORT" \
             "artifacts/campushub-images-$RELEASE_TAG.tar.gz" \
