@@ -80,3 +80,4 @@ runlogs/
 *.env.*
 !.env.example
 !*.env.example
+!.env.prod.example

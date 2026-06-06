@@ -3,13 +3,12 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
+RUN npm ci
+
 COPY . .
 
 # 使用默认的相对路径 /api/v1，与 nginx 反向代理保持一致
-# 为规避 npm 关于可选依赖的已知 bug，先清理锁文件和 node_modules 再安装并构建
-RUN rm -rf package-lock.json node_modules \
- && npm install --legacy-peer-deps \
- && npm run build
+RUN npm run build
 
 # 运行阶段：使用 nginx 提供静态资源
 FROM nginx:1.27-alpine
