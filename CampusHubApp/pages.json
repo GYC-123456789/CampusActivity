@@ -145,10 +145,12 @@
       {
         "name": "网络诊断",
         "path": "pages/test/network"
+      },
+      {
+        "name": "Login",
+        "path": "pages/auth/login"
       }
     ]
   }
 }
-
-// CI_DEMO_INVALID_JSON
 
