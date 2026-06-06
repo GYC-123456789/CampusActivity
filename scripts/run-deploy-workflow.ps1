@@ -1,0 +1,43 @@
+param(
+  [string]$PublicBaseUrl = "http://124.220.81.104",
+  [string]$Ref = "main",
+  [string]$ReleaseTag = "",
+  [switch]$NoWatch
+)
+
+$ErrorActionPreference = "Stop"
+
+function Assert-Command {
+  param([string]$Name)
+  if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
+    throw "Command not found: $Name"
+  }
+}
+
+Assert-Command gh
+
+$args = @(
+  "workflow", "run", "deploy.yml",
+  "--ref", $Ref,
+  "-f", "public_base_url=$PublicBaseUrl"
+)
+
+if ($ReleaseTag) {
+  $args += @("-f", "release_tag=$ReleaseTag")
+}
+
+Write-Host "Triggering Deploy workflow..."
+Write-Host "  ref             : $Ref"
+Write-Host "  public_base_url : $PublicBaseUrl"
+if ($ReleaseTag) {
+  Write-Host "  release_tag     : $ReleaseTag"
+} else {
+  Write-Host "  release_tag     : short Git SHA from GitHub Actions"
+}
+Write-Host ""
+
+gh @args
+
+if (-not $NoWatch) {
+  & (Join-Path $PSScriptRoot "watch-workflow.ps1") -Workflow "deploy.yml" -Branch $Ref
+}

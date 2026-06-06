@@ -33,8 +33,9 @@ const envMode = uni.getStorageSync('env') || 'auto'
 
 let isDev
 // #ifdef H5
-// H5环境：自动判断，localhost/127.0.0.1 为开发环境，其他为生产环境
-isDev = envMode === 'dev' ? true : (envMode === 'prod' ? false : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+// H5 默认也直接连接远程服务器，避免运行到浏览器时连到本地 localhost:8080。
+// 需要调试本地后端时，在浏览器控制台执行：uni.setStorageSync('env', 'dev')
+isDev = envMode === 'dev'
 // #endif
 
 // #ifndef H5

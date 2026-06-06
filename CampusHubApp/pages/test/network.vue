@@ -22,8 +22,8 @@
 </template>
 
 <script>
-import config from '../../utils/config.js'
-import { diagnoseNetwork, printDiagnose } from '../../utils/diagnose.js'
+import config from '@/utils/config.js'
+import { diagnoseNetwork, printDiagnose } from '@/utils/diagnose.js'
 
 export default {
   data() {
