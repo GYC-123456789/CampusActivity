@@ -51,3 +51,6 @@ Write-Host "  url      : $($run.url)"
 Write-Host ""
 
 gh run watch $run.databaseId --exit-status
+if ($LASTEXITCODE -ne 0) {
+  throw "Workflow failed. workflow=$Workflow run=$($run.databaseId)"
+}

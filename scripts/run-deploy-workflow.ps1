@@ -37,6 +37,9 @@ if ($ReleaseTag) {
 Write-Host ""
 
 gh @args
+if ($LASTEXITCODE -ne 0) {
+  throw "Failed to trigger Deploy workflow."
+}
 
 if (-not $NoWatch) {
   & (Join-Path $PSScriptRoot "watch-workflow.ps1") -Workflow "deploy.yml" -Branch $Ref
