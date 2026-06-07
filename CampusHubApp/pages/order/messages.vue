@@ -48,7 +48,7 @@ const scrollTop = ref(0)
 
 const isOwnMessage = (msg) => {
   const userId = store.getters['user/userId']
-  return msg.sender && (msg.sender.uid === userId || msg.sender.id === userId)
+  return msg.sender && String(msg.sender.uid || msg.sender.id) === String(userId)
 }
 
 const loadMessages = async () => {

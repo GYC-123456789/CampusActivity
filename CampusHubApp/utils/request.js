@@ -3,11 +3,16 @@ import config from './config.js'
 export function request(options) {
   return new Promise((resolve, reject) => {
     const userId = uni.getStorageSync('userId')
+    const token = uni.getStorageSync('token')
     const header = {
       'Content-Type': 'application/json',
       ...options.header
     }
     
+    if (token) {
+      header.Authorization = `Bearer ${token}`
+    }
+
     if (userId && options.needAuth !== false) {
       header['X-User-Id'] = userId.toString()
     }
@@ -53,6 +58,7 @@ export function request(options) {
 
 export function get(url, params = {}, needAuth = true) {
   const queryString = Object.keys(params)
+    .filter(key => params[key] !== undefined && params[key] !== null && params[key] !== '')
     .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
     .join('&')
   const fullUrl = queryString ? `${url}?${queryString}` : url
@@ -93,8 +99,13 @@ export function del(url, needAuth = true) {
 export function upload(url, filePath, name = 'file', needAuth = true) {
   return new Promise((resolve, reject) => {
     const userId = uni.getStorageSync('userId')
+    const token = uni.getStorageSync('token')
     const header = {}
     
+    if (token) {
+      header.Authorization = `Bearer ${token}`
+    }
+
     if (userId && needAuth) {
       header['X-User-Id'] = userId.toString()
     }

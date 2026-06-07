@@ -1,43 +1,111 @@
 <template>
   <view class="page">
-    <view class="filter-box">
-      <picker mode="selector" :range="typeOptions" range-key="label" @change="onTypeChange">
-        <view class="filter-item">
-          <text>{{ selectedType ? selectedType.label : '活动类型' }}</text>
+    <view class="app-top">
+      <view class="title-row">
+        <view>
+          <text class="page-title">预约订单</text>
+          <text class="page-subtitle">{{ hasActiveFilter ? filterSummary : '发现正在等待加入的校园活动' }}</text>
         </view>
-      </picker>
-      <picker mode="selector" :range="campusOptions" range-key="label" @change="onCampusChange">
-        <view class="filter-item">
-          <text>{{ selectedCampus ? selectedCampus.label : '校区' }}</text>
-        </view>
-      </picker>
+        <button class="top-action" @click="goCreate">发布</button>
+      </view>
     </view>
-    
-    <scroll-view class="scroll-view" scroll-y @scrolltolower="loadMore" refresher-enabled @refresherrefresh="onRefresh" :refresher-triggered="refreshing">
-      <view v-if="orderList.length > 0" class="list-box">
-        <view v-for="order in orderList" :key="order.oid || order.id" class="item-box" @click="goDetail(order.oid || order.id)">
-          <view class="item-header">
-            <text class="item-title">{{ getActivityTypeText(order.activityType) }}</text>
-            <text class="item-status">{{ getStatusText(order.status) }}</text>
+
+    <view class="filter-card">
+      <view class="filter-grid">
+        <picker mode="selector" :range="typeOptions" range-key="label" @change="onTypeChange">
+          <view class="filter-item">
+            <text>{{ selectedType ? selectedType.label : '活动类型' }}</text>
+            <view class="chevron"></view>
           </view>
-          <text class="item-location">📍 {{ order.location || '未设置' }}</text>
-          <text class="item-time">⏰ {{ formatTime(order.startTime) }}</text>
-          <view class="item-footer">
-            <text class="item-people">{{ order.currentPeople || 0 }}/{{ order.maxPeople || 0 }}人</text>
-            <text class="item-campus">{{ getCampusText(order.campus) }}</text>
+        </picker>
+        <picker mode="selector" :range="campusOptions" range-key="label" @change="onCampusChange">
+          <view class="filter-item">
+            <text>{{ selectedCampus ? selectedCampus.label : '校区' }}</text>
+            <view class="chevron"></view>
+          </view>
+        </picker>
+        <picker mode="selector" :range="statusOptions" range-key="label" @change="onStatusChange">
+          <view class="filter-item">
+            <text>{{ selectedStatus ? selectedStatus.label : '状态' }}</text>
+            <view class="chevron"></view>
+          </view>
+        </picker>
+      </view>
+      <view class="filter-bottom">
+        <view class="filter-toggle" :class="{ active: onlyMine }" @click="toggleOnlyMine">
+          <view class="toggle-dot"></view>
+          <text>我发布的</text>
+        </view>
+        <text v-if="hasActiveFilter" class="mode-clear" @click="clearMode">重置筛选</text>
+      </view>
+    </view>
+
+    <scroll-view
+      class="scroll-view"
+      scroll-y
+      @scrolltolower="loadMore"
+      refresher-enabled
+      @refresherrefresh="onRefresh"
+      :refresher-triggered="refreshing"
+    >
+      <view v-if="orderList.length > 0" class="list-box">
+        <view
+          v-for="order in orderList"
+          :key="order.oid || order.id"
+          class="item-box"
+          @click="goDetail(order.oid || order.id)"
+        >
+          <view class="item-header">
+            <view class="type-mark">
+              <text>{{ getActivityTypeText(order.activityType).slice(0, 1) }}</text>
+            </view>
+            <view class="item-title-box">
+              <text class="item-title">{{ getActivityTypeText(order.activityType) }}</text>
+              <text class="item-subtitle">{{ order.location || '未设置地点' }}</text>
+            </view>
+            <text class="status-pill" :class="`status-${order.status || 'UNKNOWN'}`">{{ getStatusText(order.status) }}</text>
+          </view>
+
+          <view class="meta-grid">
+            <view class="meta-cell">
+              <text class="meta-label">时间</text>
+              <text class="meta-value">{{ formatTime(order.startTime) }}</text>
+            </view>
+            <view class="meta-cell">
+              <text class="meta-label">人数</text>
+              <text class="meta-value">{{ order.currentPeople || 0 }}/{{ order.maxPeople || 0 }}</text>
+            </view>
+            <view class="meta-cell">
+              <text class="meta-label">校区</text>
+              <text class="meta-value">{{ getCampusText(order.campus) }}</text>
+            </view>
+          </view>
+
+          <view class="item-actions">
+            <text class="publisher">{{ order.user ? order.user.nickname : '匿名用户' }}</text>
+            <button
+              class="card-action"
+              :class="{ danger: isPublisher(order), disabled: isActionDisabled(order) }"
+              :disabled="isActionDisabled(order)"
+              @click.stop="handleOrderAction(order)"
+            >
+              {{ getActionText(order) }}
+            </button>
           </view>
         </view>
       </view>
       <view v-else-if="!loading" class="empty-box">
-        <text class="empty-text">暂无活动</text>
+        <text class="empty-title">{{ onlyMine ? '暂无我发布的活动' : '暂无活动' }}</text>
+        <text class="empty-text">换个筛选条件，或者发起一个新的活动。</text>
       </view>
       <view v-if="loading" class="loading-box">
         <text class="loading-text">加载中...</text>
       </view>
     </scroll-view>
-    
+
     <view class="fab" @click="goCreate">
-      <text class="fab-text">+</text>
+      <view class="fab-h"></view>
+      <view class="fab-v"></view>
     </view>
   </view>
 </template>
@@ -50,90 +118,282 @@ export default {
   data() {
     return {
       orderList: [],
+      appliedOrderMap: {},
       loading: false,
       refreshing: false,
+      loadedOnce: false,
       page: 1,
       size: 10,
       hasMore: true,
+      onlyMine: false,
       selectedType: null,
       selectedCampus: null,
+      selectedStatus: null,
       typeOptions: [
-        { value: null, label: '全部' },
-        { value: ACTIVITY_TYPE.BASKETBALL, label: ACTIVITY_TYPE_MAP.BASKETBALL },
-        { value: ACTIVITY_TYPE.BADMINTON, label: ACTIVITY_TYPE_MAP.BADMINTON },
-        { value: ACTIVITY_TYPE.MEAL, label: ACTIVITY_TYPE_MAP.MEAL },
-        { value: ACTIVITY_TYPE.STUDY, label: ACTIVITY_TYPE_MAP.STUDY },
-        { value: ACTIVITY_TYPE.MOVIE, label: ACTIVITY_TYPE_MAP.MOVIE },
-        { value: ACTIVITY_TYPE.RUNNING, label: ACTIVITY_TYPE_MAP.RUNNING },
-        { value: ACTIVITY_TYPE.GAME, label: ACTIVITY_TYPE_MAP.GAME },
-        { value: ACTIVITY_TYPE.OTHER, label: ACTIVITY_TYPE_MAP.OTHER }
+        { value: null, label: '全部类型' },
+        ...Object.keys(ACTIVITY_TYPE).map(key => ({
+          value: ACTIVITY_TYPE[key],
+          label: ACTIVITY_TYPE_MAP[ACTIVITY_TYPE[key]]
+        }))
       ],
       campusOptions: [
-        { value: null, label: '全部' },
-        { value: CAMPUS.LIANGXIANG, label: CAMPUS_MAP.LIANGXIANG },
-        { value: CAMPUS.ZHONGGUANCUN, label: CAMPUS_MAP.ZHONGGUANCUN },
-        { value: CAMPUS.ZHUHAI, label: CAMPUS_MAP.ZHUHAI },
-        { value: CAMPUS.XISHAN, label: CAMPUS_MAP.XISHAN },
-        { value: CAMPUS.OTHER_CAMPUS, label: CAMPUS_MAP.OTHER_CAMPUS }
+        { value: null, label: '全部校区' },
+        ...Object.keys(CAMPUS).map(key => ({
+          value: CAMPUS[key],
+          label: CAMPUS_MAP[CAMPUS[key]]
+        }))
+      ],
+      statusOptions: [
+        { value: null, label: '全部状态' },
+        { value: 'PENDING', label: ORDER_STATUS_MAP.PENDING },
+        { value: 'IN_PROGRESS', label: ORDER_STATUS_MAP.IN_PROGRESS },
+        { value: 'COMPLETED', label: ORDER_STATUS_MAP.COMPLETED },
+        { value: 'CANCELLED', label: ORDER_STATUS_MAP.CANCELLED },
+        { value: 'EXPIRED', label: ORDER_STATUS_MAP.EXPIRED }
       ]
     }
   },
+  computed: {
+    currentUserId() {
+      return this.$store.getters['user/userId'] || uni.getStorageSync('userId')
+    },
+    isLogin() {
+      return this.$store.getters['user/isLogin'] || !!uni.getStorageSync('userId')
+    },
+    isAdmin() {
+      return this.$store.getters['user/isAdmin']
+    },
+    hasActiveFilter() {
+      return !!(this.selectedType?.value || this.selectedCampus?.value || this.selectedStatus?.value || this.onlyMine)
+    },
+    filterSummary() {
+      const parts = []
+      if (this.onlyMine) parts.push('我发布的')
+      if (this.selectedType?.value) parts.push(this.selectedType.label)
+      if (this.selectedCampus?.value) parts.push(this.selectedCampus.label)
+      if (this.selectedStatus?.value) parts.push(this.selectedStatus.label)
+      return parts.join(' · ') || '全部活动'
+    }
+  },
   onLoad() {
-    console.log('活动列表onLoad')
-    this.loadOrders()
+    this.applyPendingFilter()
+    this.loadedOnce = true
+    this.reload()
   },
   onShow() {
-    console.log('活动列表onShow')
+    if (this.loadedOnce && this.applyPendingFilter()) {
+      this.reload()
+    }
   },
   onPullDownRefresh() {
     this.onRefresh()
   },
   methods: {
+    normalizePage(result) {
+      if (Array.isArray(result)) return result
+      if (Array.isArray(result?.list)) return result.list
+      if (Array.isArray(result?.records)) return result.records
+      return []
+    },
+    applyPendingFilter() {
+      const legacyMode = uni.getStorageSync('orderListMode')
+      const pending = uni.getStorageSync('orderListFilter') || (legacyMode ? { mode: legacyMode } : null)
+      if (!pending) return false
+
+      uni.removeStorageSync('orderListMode')
+      uni.removeStorageSync('orderListFilter')
+
+      const nextOnlyMine = pending.mode === 'mine' || pending.onlyMine === true
+      const nextType = this.typeOptions.find(item => item.value === pending.activityType) || null
+      const nextCampus = this.campusOptions.find(item => item.value === pending.campus) || null
+      const nextStatus = this.statusOptions.find(item => item.value === pending.status) || null
+      const changed =
+        this.onlyMine !== nextOnlyMine ||
+        (this.selectedType?.value || null) !== (nextType?.value || null) ||
+        (this.selectedCampus?.value || null) !== (nextCampus?.value || null) ||
+        (this.selectedStatus?.value || null) !== (nextStatus?.value || null)
+
+      this.onlyMine = nextOnlyMine
+      this.selectedType = nextType
+      this.selectedCampus = nextCampus
+      this.selectedStatus = nextStatus
+      return changed
+    },
+    buildParams() {
+      const params = {
+        page: this.page,
+        size: this.size
+      }
+      if (this.selectedType?.value) params.activityType = this.selectedType.value
+      if (this.selectedCampus?.value) params.campus = this.selectedCampus.value
+      if (this.selectedStatus?.value) params.status = this.selectedStatus.value
+      return params
+    },
+    reload() {
+      this.page = 1
+      this.hasMore = true
+      this.orderList = []
+      this.appliedOrderMap = {}
+      this.loadOrders()
+    },
     async loadOrders() {
       if (this.loading) return
       if (!this.hasMore && this.page > 1) return
-      
+
+      if (this.onlyMine && !this.isLogin) {
+        uni.navigateTo({ url: '/pages/auth/login' })
+        return
+      }
+
       this.loading = true
       try {
-        // 构建请求参数，包含筛选条件
-        const params = {
-          page: this.page,
-          size: this.size
-        }
-        
-        // 添加活动类型筛选
-        if (this.selectedType && this.selectedType.value) {
-          params.activityType = this.selectedType.value
-        }
-        
-        // 添加校区筛选
-        if (this.selectedCampus && this.selectedCampus.value) {
-          params.campus = this.selectedCampus.value
-        }
-        
-        const result = await orderApi.getOrders(params)
-        if (result && result.list) {
-          if (this.page === 1) {
-            this.orderList = result.list
-          } else {
-            this.orderList = [...this.orderList, ...result.list]
-          }
-          this.hasMore = result.list.length >= this.size
-          this.page++
+        const result = this.onlyMine
+          ? await orderApi.getMyOrders(this.page, this.size)
+          : await orderApi.getOrders(this.buildParams())
+        const rawList = this.normalizePage(result)
+        const list = this.onlyMine ? this.applyLocalFilters(rawList) : rawList
+        await this.loadAppliedInfo(list)
+
+        if (this.page === 1) {
+          this.orderList = list
         } else {
-          this.hasMore = false
+          this.orderList = [...this.orderList, ...list]
         }
+
+        this.hasMore = rawList.length >= this.size
+        this.page++
       } catch (e) {
         console.error('加载活动失败:', e)
-        uni.showToast({
-          title: '加载失败',
-          icon: 'none'
-        })
+        uni.showToast({ title: '加载失败', icon: 'none' })
       } finally {
         this.loading = false
         this.refreshing = false
         uni.stopPullDownRefresh()
       }
+    },
+    applyLocalFilters(list) {
+      return list.filter(order => {
+        const matchType = !this.selectedType?.value || order.activityType === this.selectedType.value
+        const matchCampus = !this.selectedCampus?.value || order.campus === this.selectedCampus.value
+        const matchStatus = !this.selectedStatus?.value || order.status === this.selectedStatus.value
+        return matchType && matchCampus && matchStatus
+      })
+    },
+    async loadAppliedInfo(list) {
+      if (!this.isLogin || !this.currentUserId || !Array.isArray(list) || !list.length) return
+
+      const nextMap = { ...this.appliedOrderMap }
+      await Promise.all(list.map(async (order) => {
+        const orderId = order.id || order.oid
+        if (!orderId || this.isPublisher(order)) return
+        try {
+          const apps = await orderApi.getApplications(orderId)
+          const applied = (apps || []).some(app => {
+            const appUserId = app.user && (app.user.id || app.user.uid)
+            return String(appUserId || '') === String(this.currentUserId || '') && app.status !== 'CANCELLED_APPLY'
+          })
+          if (applied) nextMap[orderId] = true
+        } catch (e) {
+          console.error('加载申请状态失败:', e)
+        }
+      }))
+      this.appliedOrderMap = nextMap
+    },
+    isPublisher(order) {
+      if (!this.isLogin || !order?.user) return false
+      if (this.isAdmin) return true
+      const publisherId = order.user.id || order.user.uid
+      return String(publisherId || '') === String(this.currentUserId || '')
+    },
+    hasApplied(order) {
+      const orderId = order.id || order.oid
+      return !!this.appliedOrderMap[orderId]
+    },
+    isActionDisabled(order) {
+      if (!order) return true
+      if (this.isPublisher(order)) {
+        return order.status !== 'PENDING'
+      }
+      if (!this.isLogin) return false
+      if (this.hasApplied(order)) return true
+      if (order.status !== 'PENDING') return true
+      if ((order.currentPeople || 0) >= (order.maxPeople || 0)) return true
+      return false
+    },
+    getActionText(order) {
+      if (!this.isLogin) return '登录后申请'
+      if (this.isPublisher(order)) {
+        if (order.status === 'PENDING') return '取消活动'
+        return '不可操作'
+      }
+      if (this.hasApplied(order)) return '已申请'
+      if (order.status === 'EXPIRED') return '已过期'
+      if (order.status === 'IN_PROGRESS') return '进行中'
+      if (order.status === 'COMPLETED') return '已完成'
+      if (order.status === 'CANCELLED') return '已取消'
+      if ((order.currentPeople || 0) >= (order.maxPeople || 0)) return '人数已满'
+      return '申请加入'
+    },
+    handleOrderAction(order) {
+      const orderId = order.id || order.oid
+      if (!orderId) return
+
+      if (!this.isLogin) {
+        uni.navigateTo({ url: '/pages/auth/login' })
+        return
+      }
+
+      if (this.isPublisher(order)) {
+        this.cancelOrder(orderId)
+        return
+      }
+
+      if (this.isActionDisabled(order)) return
+      this.applyOrder(orderId)
+    },
+    applyOrder(orderId) {
+      uni.showModal({
+        title: '申请加入',
+        content: '确定申请加入这个活动吗？',
+        success: async (res) => {
+          if (!res.confirm) return
+          try {
+            await orderApi.applyOrder(orderId)
+            this.appliedOrderMap = { ...this.appliedOrderMap, [orderId]: true }
+            uni.showToast({ title: '申请成功', icon: 'success' })
+            this.reload()
+          } catch (error) {
+            uni.showToast({ title: error.message || '申请失败', icon: 'none' })
+          }
+        }
+      })
+    },
+    cancelOrder(orderId) {
+      uni.showModal({
+        title: '取消活动',
+        content: '确定取消这个活动吗？此操作不可撤销。',
+        success: async (res) => {
+          if (!res.confirm) return
+          try {
+            await orderApi.deleteOrder(orderId)
+            uni.showToast({ title: '已取消', icon: 'success' })
+            this.reload()
+          } catch (error) {
+            uni.showToast({ title: error.message || '取消失败', icon: 'none' })
+          }
+        }
+      })
+    },
+    clearMode() {
+      this.onlyMine = false
+      this.selectedType = null
+      this.selectedCampus = null
+      this.selectedStatus = null
+      this.reload()
+    },
+    toggleOnlyMine() {
+      this.onlyMine = !this.onlyMine
+      this.reload()
     },
     onRefresh() {
       this.page = 1
@@ -146,34 +406,37 @@ export default {
     },
     onTypeChange(e) {
       this.selectedType = this.typeOptions[e.detail.value]
-      this.page = 1
-      this.hasMore = true
-      this.loadOrders()
+      this.reload()
     },
     onCampusChange(e) {
       this.selectedCampus = this.campusOptions[e.detail.value]
-      this.page = 1
-      this.hasMore = true
-      this.loadOrders()
+      this.reload()
+    },
+    onStatusChange(e) {
+      this.selectedStatus = this.statusOptions[e.detail.value]
+      this.reload()
     },
     goDetail(id) {
       uni.navigateTo({ url: `/pages/order/detail?id=${id}` })
     },
     goCreate() {
+      if (!this.isLogin) {
+        uni.navigateTo({ url: '/pages/auth/login' })
+        return
+      }
       uni.navigateTo({ url: '/pages/order/create' })
     },
     getActivityTypeText(type) {
       return ACTIVITY_TYPE_MAP[type] || '其他'
     },
     getCampusText(campus) {
-      return CAMPUS_MAP[campus] || '其他'
+      return CAMPUS_MAP[campus] || '其他校区'
     },
     getStatusText(status) {
       return ORDER_STATUS_MAP[status] || '未知'
     },
     formatTime(timeStr) {
       if (!timeStr) return '未设置'
-      // 格式化时间显示，例如：2024-01-01 12:00:00 -> 01-01 12:00
       try {
         const date = new Date(timeStr)
         const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -192,28 +455,136 @@ export default {
 <style>
 .page {
   width: 100%;
-  height: 100%;
-  background: #f8f8f8;
+  height: 100vh;
+  background: #f3f5f9;
   display: flex;
   flex-direction: column;
 }
 
-.filter-box {
-  width: 100%;
-  padding: 20rpx 30rpx;
-  background: #ffffff;
-  display: flex;
-  flex-direction: row;
-  gap: 20rpx;
+.app-top {
+  padding: 44rpx 30rpx 58rpx;
+  background: #1f447a;
+  color: #ffffff;
   flex-shrink: 0;
 }
 
-.filter-item {
+.title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.title-row view {
   flex: 1;
-  padding: 20rpx;
-  background: #f5f5f5;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.page-title {
+  font-size: 42rpx;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.page-subtitle {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.78);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-action {
+  width: 112rpx;
+  height: 58rpx;
+  line-height: 58rpx;
+  padding: 0;
+  border: 1rpx solid rgba(255, 255, 255, 0.32);
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 24rpx;
+}
+
+.filter-card {
+  margin: -38rpx 30rpx 12rpx;
+  padding: 18rpx;
+  background: #ffffff;
+  border-radius: 12rpx;
+  box-shadow: 0 12rpx 28rpx rgba(23, 42, 79, 0.14);
+  flex-shrink: 0;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12rpx;
+}
+
+.filter-item {
+  min-height: 64rpx;
+  padding: 0 14rpx;
+  background: #f3f5f9;
   border-radius: 8rpx;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8rpx;
+  color: #344054;
+  font-size: 23rpx;
+}
+
+.filter-item text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  width: 12rpx;
+  height: 12rpx;
+  border-right: 3rpx solid #8a94a6;
+  border-bottom: 3rpx solid #8a94a6;
+  transform: rotate(45deg);
+  flex: 0 0 12rpx;
+}
+
+.filter-bottom {
+  margin-top: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 12rpx;
+  color: #667085;
+  font-size: 24rpx;
+}
+
+.filter-toggle.active {
+  color: #1f447a;
+  font-weight: 700;
+}
+
+.toggle-dot {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
+  border: 4rpx solid currentColor;
+  box-sizing: border-box;
+}
+
+.mode-clear {
+  color: #1f447a;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 .scroll-view {
@@ -223,104 +594,198 @@ export default {
 }
 
 .list-box {
-  padding: 20rpx 30rpx;
+  padding: 16rpx 30rpx 170rpx;
 }
 
 .item-box {
   background: #ffffff;
-  padding: 30rpx;
+  padding: 26rpx;
   border-radius: 12rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 18rpx;
+  box-shadow: 0 8rpx 22rpx rgba(22, 34, 51, 0.06);
+  border-left: 6rpx solid #1f447a;
 }
 
 .item-header {
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20rpx;
+  margin-bottom: 22rpx;
+}
+
+.type-mark {
+  width: 62rpx;
+  height: 62rpx;
+  border-radius: 12rpx;
+  background: #edf4ff;
+  color: #1f447a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.item-title-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5rpx;
 }
 
 .item-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333333;
+  font-size: 31rpx;
+  font-weight: 800;
+  color: #172033;
 }
 
-.item-status {
-  font-size: 24rpx;
-  color: #666666;
+.item-subtitle {
+  font-size: 23rpx;
+  color: #8a94a6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.item-location {
-  display: block;
-  font-size: 28rpx;
-  color: #666666;
-  margin-bottom: 10rpx;
+.status-pill {
+  padding: 7rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  color: #1f447a;
+  background: #edf4ff;
+  flex-shrink: 0;
 }
 
-.item-time {
-  display: block;
-  font-size: 28rpx;
-  color: #666666;
-  margin-bottom: 20rpx;
+.status-COMPLETED,
+.status-IN_PROGRESS {
+  color: #087443;
+  background: #e8f7ef;
 }
 
-.item-footer {
+.status-CANCELLED,
+.status-EXPIRED {
+  color: #b42318;
+  background: #fff1f0;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr 1fr;
+  gap: 12rpx;
+  padding: 18rpx;
+  background: #f8fafc;
+  border-radius: 10rpx;
+}
+
+.meta-cell {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.meta-label {
+  font-size: 21rpx;
+  color: #8a94a6;
+}
+
+.meta-value {
+  font-size: 25rpx;
+  color: #344054;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-actions {
+  display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 22rpx;
 }
 
-.item-people {
+.publisher {
+  color: #667085;
   font-size: 24rpx;
-  color: #999999;
 }
 
-.item-campus {
+.card-action {
+  min-width: 156rpx;
+  height: 62rpx;
+  padding: 0 22rpx;
+  border: none;
+  border-radius: 999rpx;
+  background: #1f447a;
+  color: #ffffff;
   font-size: 24rpx;
-  color: #999999;
+  line-height: 62rpx;
 }
 
-.empty-box {
+.card-action.danger {
+  background: #fff1f0;
+  color: #b42318;
+}
+
+.card-action.disabled {
+  background: #eef1f5;
+  color: #8a94a6;
+}
+
+.empty-box,
+.loading-box {
   text-align: center;
-  padding: 100rpx 0;
-}
-
-.empty-text {
-  font-size: 28rpx;
-  color: #999999;
+  padding: 100rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
 }
 
 .loading-box {
-  text-align: center;
   padding: 50rpx 0;
 }
 
+.empty-title {
+  font-size: 30rpx;
+  color: #172033;
+  font-weight: 800;
+}
+
+.empty-text,
 .loading-text {
-  font-size: 28rpx;
-  color: #999999;
+  font-size: 26rpx;
+  color: #8a94a6;
 }
 
 .fab {
   position: fixed;
   right: 30rpx;
   bottom: 180rpx;
-  width: 100rpx;
-  height: 100rpx;
-  background: #007AFF;
+  width: 94rpx;
+  height: 94rpx;
+  background: #1f447a;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 999;
-  box-shadow: 0 4rpx 12rpx rgba(0, 122, 255, 0.3);
+  box-shadow: 0 10rpx 24rpx rgba(31, 68, 122, 0.32);
 }
 
-.fab-text {
-  font-size: 60rpx;
-  color: #ffffff;
-  font-weight: bold;
+.fab-h,
+.fab-v {
+  position: absolute;
+  background: #ffffff;
+  border-radius: 999rpx;
+}
+
+.fab-h {
+  width: 36rpx;
+  height: 6rpx;
+}
+
+.fab-v {
+  width: 6rpx;
+  height: 36rpx;
 }
 </style>

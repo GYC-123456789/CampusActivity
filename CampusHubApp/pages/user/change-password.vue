@@ -76,7 +76,10 @@ const handleSubmit = async () => {
   
   try {
     const userId = store.getters['user/userId']
-    await userApi.changePassword(userId, form.value.oldPassword, form.value.newPassword)
+    await userApi.changePassword(userId, {
+      oldPassword: form.value.oldPassword,
+      newPassword: form.value.newPassword
+    })
     showSuccess('修改成功')
     
     setTimeout(() => {

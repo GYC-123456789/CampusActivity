@@ -1,75 +1,111 @@
 <template>
   <view class="create-order-container">
-    <view class="form">
+    <view class="header-block">
+      <text class="page-title">发起活动</text>
+      <text class="page-subtitle">把时间、地点和人数说清楚，方便同学快速加入。</text>
+    </view>
+
+    <view class="form-panel">
       <view class="form-item">
-        <text class="label">活动类型 *</text>
+        <text class="label">活动类型</text>
         <picker mode="selector" :range="activityTypeOptions" range-key="label" @change="onActivityTypeChange">
           <view class="picker-view">
-            <text :class="form.activityType ? '' : 'placeholder'">
+            <text :class="form.activityType ? 'picker-text' : 'placeholder'">
               {{ form.activityType ? getActivityTypeText(form.activityType) : '请选择活动类型' }}
             </text>
+            <view class="chevron"></view>
           </view>
         </picker>
       </view>
-      
+
       <view class="form-item">
-        <text class="label">性别要求 *</text>
-        <picker mode="selector" :range="genderOptions" range-key="label" @change="onGenderChange">
-          <view class="picker-view">
-            <text :class="form.genderRequire ? '' : 'placeholder'">
-              {{ form.genderRequire ? getGenderText(form.genderRequire) : '请选择性别要求' }}
-            </text>
+        <text class="label">性别要求</text>
+        <view class="segmented">
+          <view
+            v-for="item in genderOptions"
+            :key="item.value"
+            :class="['segment-item', form.genderRequire === item.value ? 'active' : '']"
+            @click="form.genderRequire = item.value"
+          >
+            {{ item.label }}
           </view>
-        </picker>
+        </view>
       </view>
-      
+
       <view class="form-item">
-        <text class="label">校区 *</text>
+        <text class="label">校区</text>
         <picker mode="selector" :range="campusOptions" range-key="label" @change="onCampusChange">
           <view class="picker-view">
-            <text :class="form.campus ? '' : 'placeholder'">
+            <text :class="form.campus ? 'picker-text' : 'placeholder'">
               {{ form.campus ? getCampusText(form.campus) : '请选择校区' }}
             </text>
+            <view class="chevron"></view>
           </view>
         </picker>
+        <view v-if="showMatchingHint" class="matching-hint" @click="goToMatchedOrders">
+          <view class="hint-icon search-icon"></view>
+          <text>找到 {{ matchingCount }} 个相似活动，点此查看</text>
+        </view>
       </view>
-      
+
       <view class="form-item">
-        <text class="label">活动地点 *</text>
-        <input v-model="form.location" class="input" placeholder="请输入活动地点" />
+        <text class="label">活动地点</text>
+        <input
+          v-model.trim="form.location"
+          class="input"
+          maxlength="100"
+          placeholder="例如：良乡体育馆 3 号场"
+        />
       </view>
-      
+
       <view class="form-item">
-        <text class="label">开始时间 *</text>
-        <picker mode="date" :value="dateValue" :start="minDate" @change="onDateChange">
-          <view class="picker-view">
-            <text>{{ dateValue || '请选择日期' }}</text>
-          </view>
-        </picker>
-        <picker mode="time" :value="timeValue" @change="onTimeChange">
-          <view class="picker-view">
-            <text>{{ timeValue || '请选择时间' }}</text>
-          </view>
-        </picker>
+        <text class="label">开始时间</text>
+        <view class="time-row">
+          <picker class="time-picker" mode="date" :value="dateValue" :start="minDate" @change="onDateChange">
+            <view class="picker-view compact">
+              <text :class="dateValue ? 'picker-text' : 'placeholder'">{{ dateValue || '选择日期' }}</text>
+            </view>
+          </picker>
+          <picker class="time-picker" mode="time" :value="timeValue" @change="onTimeChange">
+            <view class="picker-view compact">
+              <text :class="timeValue ? 'picker-text' : 'placeholder'">{{ timeValue || '选择时间' }}</text>
+            </view>
+          </picker>
+        </view>
+        <text class="field-tip">开始时间必须晚于当前时间。</text>
       </view>
-      
+
       <view class="form-item">
-        <text class="label">人数上限 *</text>
-        <input v-model.number="form.maxPeople" class="input" type="number" placeholder="请输入人数上限" />
+        <text class="label">人数上限</text>
+        <view class="stepper-row">
+          <button class="stepper-btn" :disabled="form.maxPeople <= 1" @click="adjustMaxPeople(-1)">-</button>
+          <input v-model.number="form.maxPeople" class="input number-input" type="number" />
+          <button class="stepper-btn" :disabled="form.maxPeople >= 20" @click="adjustMaxPeople(1)">+</button>
+        </view>
+        <text class="field-tip">支持 1-20 人，发布后待匹配状态下仍可调整。</text>
       </view>
-      
+
       <view class="form-item">
         <text class="label">备注</text>
-        <textarea v-model="form.note" class="textarea" placeholder="请输入备注信息" maxlength="200" />
+        <textarea
+          v-model="form.note"
+          class="textarea"
+          maxlength="200"
+          placeholder="可写明集合方式、装备要求或其他补充说明"
+        />
+        <text class="counter">{{ form.note.length }}/200</text>
       </view>
-      
+    </view>
+
+    <view class="bottom-actions">
+      <button class="ghost-btn" @click="handleCancel">取消</button>
       <button class="submit-btn" :loading="loading" @click="handleSubmit">发布活动</button>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useStore } from 'vuex'
 import { orderApi } from '@/api/index.js'
@@ -78,40 +114,22 @@ import { ACTIVITY_TYPE, ACTIVITY_TYPE_MAP, GENDER_REQUIRE, GENDER_REQUIRE_MAP, C
 
 const store = useStore()
 
-// 检查登录状态 - 使用 onLoad 页面生命周期
-onLoad(() => {
-  if (!store.getters['user/isLogin']) {
-    showError('请先登录')
-    setTimeout(() => {
-      uni.redirectTo({ url: '/pages/auth/login' })
-    }, 1000)
-  }
-})
-
 const form = ref({
   activityType: null,
-  genderRequire: null,
+  genderRequire: GENDER_REQUIRE.ANY,
   campus: null,
   location: '',
   startTime: '',
-  maxPeople: 4,
+  maxPeople: 2,
   note: ''
 })
 
 const dateValue = ref('')
 const timeValue = ref('')
 const loading = ref(false)
-
-// 获取最小日期（今天）
-const getMinDate = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-const minDate = ref(getMinDate())
+const matchingCount = ref(0)
+const matchingLoading = ref(false)
+let matchingTimer = null
 
 const activityTypeOptions = Object.keys(ACTIVITY_TYPE).map(key => ({
   value: ACTIVITY_TYPE[key],
@@ -128,17 +146,67 @@ const campusOptions = Object.keys(CAMPUS).map(key => ({
   label: CAMPUS_MAP[CAMPUS[key]]
 }))
 
-const getActivityTypeText = (type) => {
-  return ACTIVITY_TYPE_MAP[type] || ''
+const getMinDate = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
-const getGenderText = (gender) => {
-  return GENDER_REQUIRE_MAP[gender] || ''
+const minDate = ref(getMinDate())
+
+const showMatchingHint = computed(() => {
+  return form.value.activityType && form.value.campus && !matchingLoading.value && matchingCount.value > 0
+})
+
+onLoad((options = {}) => {
+  if (!store.getters['user/isLogin']) {
+    showError('请先登录')
+    setTimeout(() => {
+      uni.redirectTo({ url: '/pages/auth/login' })
+    }, 800)
+    return
+  }
+
+  applyQueryDefaults(options)
+})
+
+watch(
+  () => [form.value.activityType, form.value.campus],
+  ([activityType, campus]) => {
+    if (matchingTimer) clearTimeout(matchingTimer)
+    if (!activityType || !campus) {
+      matchingCount.value = 0
+      return
+    }
+    matchingTimer = setTimeout(() => {
+      fetchMatchingOrdersCount(activityType, campus)
+    }, 250)
+  }
+)
+
+const applyQueryDefaults = (options) => {
+  if (options.activityType) form.value.activityType = String(options.activityType)
+  if (options.genderRequire) form.value.genderRequire = String(options.genderRequire)
+  if (options.campus) form.value.campus = String(options.campus)
+  if (options.location) form.value.location = decodeURIComponent(String(options.location))
+  if (options.note) form.value.note = decodeURIComponent(String(options.note))
+  if (options.maxPeople) {
+    const n = Number(options.maxPeople)
+    if (Number.isInteger(n) && n >= 1 && n <= 20) form.value.maxPeople = n
+  }
+  if (options.startTime) {
+    const value = decodeURIComponent(String(options.startTime)).replace('T', ' ').slice(0, 19)
+    form.value.startTime = value
+    dateValue.value = value.slice(0, 10)
+    timeValue.value = value.slice(11, 16)
+  }
 }
 
-const getCampusText = (campus) => {
-  return CAMPUS_MAP[campus] || ''
-}
+const getActivityTypeText = (type) => ACTIVITY_TYPE_MAP[type] || ''
+const getGenderText = (gender) => GENDER_REQUIRE_MAP[gender] || ''
+const getCampusText = (campus) => CAMPUS_MAP[campus] || ''
 
 const onActivityTypeChange = (e) => {
   form.value.activityType = activityTypeOptions[e.detail.value].value
@@ -168,54 +236,108 @@ const updateStartTime = () => {
   }
 }
 
+const adjustMaxPeople = (delta) => {
+  const next = Number(form.value.maxPeople || 0) + delta
+  form.value.maxPeople = Math.max(1, Math.min(20, next))
+}
+
+const fetchMatchingOrdersCount = async (activityType, campus) => {
+  matchingLoading.value = true
+  try {
+    const result = await orderApi.getOrders({
+      page: 1,
+      size: 1,
+      status: 'PENDING',
+      activityType,
+      campus
+    })
+    matchingCount.value = Number(result?.total || 0)
+  } catch (error) {
+    console.error('加载相似活动数量失败:', error)
+    matchingCount.value = 0
+  } finally {
+    matchingLoading.value = false
+  }
+}
+
+const goToMatchedOrders = () => {
+  if (!form.value.activityType || !form.value.campus) return
+
+  uni.setStorageSync('orderListFilter', {
+    mode: 'all',
+    activityType: form.value.activityType,
+    campus: form.value.campus,
+    status: 'PENDING'
+  })
+  uni.switchTab({ url: '/pages/order/list' })
+}
+
+const handleCancel = () => {
+  uni.navigateBack()
+}
+
+const validateForm = () => {
+  if (!form.value.activityType) return '请选择活动类型'
+  if (!form.value.genderRequire) return '请选择性别要求'
+  if (!form.value.campus) return '请选择校区'
+  if (!form.value.location.trim()) return '请输入活动地点'
+  if (!form.value.startTime) return '请选择开始时间'
+
+  const maxPeople = Number(form.value.maxPeople)
+  if (!Number.isInteger(maxPeople) || maxPeople < 1 || maxPeople > 20) {
+    return '人数上限应在 1-20 之间'
+  }
+
+  const startTime = new Date(form.value.startTime.replace(' ', 'T'))
+  if (Number.isNaN(startTime.getTime())) return '开始时间格式不正确'
+  if (startTime.getTime() <= Date.now()) return '开始时间必须晚于当前时间'
+
+  if (form.value.note.length > 200) return '备注不能超过 200 个字'
+  return ''
+}
+
 const handleSubmit = async () => {
-  // 检查登录状态
   if (!store.getters['user/isLogin']) {
     showError('请先登录')
-    setTimeout(() => {
-      uni.redirectTo({ url: '/pages/auth/login' })
-    }, 1000)
+    uni.navigateTo({ url: '/pages/auth/login' })
     return
   }
-  
-  // 验证必填项
-  if (!form.value.activityType || !form.value.genderRequire || !form.value.campus ||
-      !form.value.location || !form.value.startTime || !form.value.maxPeople) {
-    showError('请填写完整信息')
+
+  const error = validateForm()
+  if (error) {
+    showError(error)
     return
   }
-  
-  if (form.value.maxPeople < 2 || form.value.maxPeople > 20) {
-    showError('人数上限应在2-20之间')
-    return
-  }
-  
-  // 验证开始时间必须大于当前时间
-  if (form.value.startTime) {
-    const startTime = new Date(form.value.startTime)
-    const now = new Date()
-    
-    if (startTime <= now) {
-      showError('开始时间必须大于当前时间')
-      return
-    }
-  }
-  
+
   loading.value = true
   showLoading('发布中...')
-  
+
   try {
-    await orderApi.createOrder(form.value)
+    const payload = {
+      activityType: form.value.activityType,
+      genderRequire: form.value.genderRequire,
+      campus: form.value.campus,
+      location: form.value.location.trim(),
+      startTime: form.value.startTime,
+      note: form.value.note,
+      maxPeople: Number(form.value.maxPeople)
+    }
+    const orderId = await orderApi.createOrder(payload)
+    hideLoading()
     showSuccess('发布成功')
-    
+
     setTimeout(() => {
-      uni.navigateBack()
-    }, 1000)
+      if (orderId) {
+        uni.redirectTo({ url: `/pages/order/detail?id=${orderId}` })
+      } else {
+        uni.switchTab({ url: '/pages/order/list' })
+      }
+    }, 700)
   } catch (error) {
+    hideLoading()
     showError(error.message || '发布失败')
   } finally {
     loading.value = false
-    hideLoading()
   }
 }
 </script>
@@ -223,63 +345,245 @@ const handleSubmit = async () => {
 <style scoped>
 .create-order-container {
   min-height: 100vh;
-  background: #f8f8f8;
-  padding: 30rpx;
+  background: #f5f7fb;
+  padding: 32rpx 28rpx 148rpx;
+  box-sizing: border-box;
 }
 
-.form {
+.header-block {
+  margin-bottom: 28rpx;
+}
+
+.page-title {
+  display: block;
+  font-size: 42rpx;
+  font-weight: 800;
+  color: #172033;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #667085;
+  line-height: 1.5;
+}
+
+.form-panel {
   background: #ffffff;
-  border-radius: 24rpx;
-  padding: 40rpx;
+  border: 1rpx solid #e8edf5;
+  border-radius: 8rpx;
+  padding: 28rpx;
+  box-shadow: 0 10rpx 30rpx rgba(18, 38, 63, 0.06);
 }
 
 .form-item {
-  margin-bottom: 40rpx;
+  margin-bottom: 32rpx;
+}
+
+.form-item:last-child {
+  margin-bottom: 0;
 }
 
 .label {
   display: block;
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333333;
-  margin-bottom: 16rpx;
+  margin-bottom: 14rpx;
+  font-size: 27rpx;
+  font-weight: 700;
+  color: #263244;
 }
 
 .input,
-.textarea {
+.textarea,
+.picker-view {
   width: 100%;
-  padding: 24rpx;
-  border: 2rpx solid #e5e5e5;
-  border-radius: 12rpx;
+  box-sizing: border-box;
+  border: 1rpx solid #d9e0ea;
+  border-radius: 8rpx;
+  background: #fbfcfe;
+  color: #1f2937;
   font-size: 28rpx;
 }
 
+.input {
+  height: 88rpx;
+  padding: 0 24rpx;
+}
+
 .textarea {
-  min-height: 200rpx;
+  min-height: 180rpx;
+  padding: 22rpx 24rpx;
+  line-height: 1.6;
 }
 
 .picker-view {
-  padding: 24rpx;
-  border: 2rpx solid #e5e5e5;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  color: #333333;
+  min-height: 88rpx;
+  padding: 0 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.picker-view.compact {
+  justify-content: center;
+}
+
+.picker-text {
+  color: #1f2937;
 }
 
 .placeholder {
-  color: #999999;
+  color: #98a2b3;
+}
+
+.chevron {
+  width: 16rpx;
+  height: 16rpx;
+  border-right: 3rpx solid #98a2b3;
+  border-bottom: 3rpx solid #98a2b3;
+  transform: rotate(45deg);
+}
+
+.segmented {
+  display: flex;
+  padding: 6rpx;
+  border-radius: 8rpx;
+  background: #eef3f8;
+  gap: 6rpx;
+}
+
+.segment-item {
+  flex: 1;
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  border-radius: 8rpx;
+  color: #667085;
+  font-size: 26rpx;
+}
+
+.segment-item.active {
+  background: #ffffff;
+  color: #1d4ed8;
+  font-weight: 700;
+  box-shadow: 0 4rpx 12rpx rgba(29, 78, 216, 0.14);
+}
+
+.matching-hint {
+  margin-top: 14rpx;
+  padding: 18rpx 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  border-radius: 8rpx;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 25rpx;
+}
+
+.hint-icon {
+  width: 32rpx;
+  height: 32rpx;
+  flex: 0 0 32rpx;
+}
+
+.search-icon {
+  position: relative;
+  border: 3rpx solid #1d4ed8;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.search-icon::after {
+  content: "";
+  position: absolute;
+  width: 14rpx;
+  height: 3rpx;
+  right: -9rpx;
+  bottom: -5rpx;
+  background: #1d4ed8;
+  border-radius: 999rpx;
+  transform: rotate(45deg);
+}
+
+.time-row,
+.stepper-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.time-picker {
+  flex: 1;
+}
+
+.stepper-btn {
+  width: 86rpx;
+  height: 86rpx;
+  line-height: 86rpx;
+  padding: 0;
+  border-radius: 8rpx;
+  border: 1rpx solid #d9e0ea;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 36rpx;
+}
+
+.stepper-btn[disabled] {
+  color: #c2cad6;
+  background: #f3f5f8;
+}
+
+.number-input {
+  flex: 1;
+  text-align: center;
+}
+
+.field-tip,
+.counter {
+  display: block;
+  margin-top: 10rpx;
+  color: #8a94a6;
+  font-size: 23rpx;
+}
+
+.counter {
+  text-align: right;
+}
+
+.bottom-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 18rpx;
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1rpx solid #e8edf5;
+  box-shadow: 0 -8rpx 24rpx rgba(17, 24, 39, 0.08);
+}
+
+.ghost-btn,
+.submit-btn {
+  flex: 1;
+  height: 86rpx;
+  line-height: 86rpx;
+  border-radius: 8rpx;
+  font-size: 29rpx;
+  font-weight: 700;
+  border: none;
+  padding: 0;
+}
+
+.ghost-btn {
+  background: #eef3f8;
+  color: #475467;
 }
 
 .submit-btn {
-  width: 100%;
-  height: 88rpx;
-  background: #007AFF;
+  background: #1d4ed8;
   color: #ffffff;
-  border-radius: 12rpx;
-  font-size: 32rpx;
-  font-weight: bold;
-  border: none;
-  margin-top: 40rpx;
 }
 </style>
-

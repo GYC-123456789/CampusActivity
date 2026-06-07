@@ -1,15 +1,19 @@
 <script>
 import config from './utils/config.js'
+import store from './store/index.js'
 
 export default {
   onLaunch() {
-    console.log('App启动', config.baseURL)
+    console.log('App launch', config.baseURL)
+    store.dispatch('user/initUserState').catch((error) => {
+      console.error('Init user state failed:', error)
+    })
   },
   onShow() {
-    console.log('App显示')
+    console.log('App show')
   },
   onHide() {
-    console.log('App隐藏')
+    console.log('App hide')
   }
 }
 </script>

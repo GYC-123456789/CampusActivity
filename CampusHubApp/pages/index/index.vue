@@ -1,53 +1,93 @@
 <template>
   <view class="container">
-    <view class="header">
-      <text class="title">CampusHub</text>
-      <view class="avatar-box" @click="toUser">
-        <image v-if="userInfo && userInfo.avatarUrl" :src="userInfo.avatarUrl" class="avatar" mode="aspectFill" />
-        <view v-else class="avatar-placeholder">
-          <text>{{ userInfo ? (userInfo.nickname?.[0] || '未') : '未' }}</text>
+    <view class="app-top">
+      <view class="hero-row">
+        <view class="hero-copy">
+          <text class="eyebrow">校内活动预约与分享平台</text>
+          <text class="brand">CampusHub</text>
+          <text class="hero-subtitle">{{ welcomeText }}</text>
+        </view>
+        <view class="avatar-box" @click="toUser">
+          <image v-if="avatarSrc" :src="avatarSrc" class="avatar" mode="aspectFill" />
+          <view v-else class="avatar-placeholder">
+            <text>{{ userInitial }}</text>
+          </view>
+        </view>
+      </view>
+      <view class="metric-row">
+        <view class="metric-card">
+          <text class="metric-num">{{ orders.length }}</text>
+          <text class="metric-label">推荐活动</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-num">{{ contents.length }}</text>
+          <text class="metric-label">热门动态</text>
+        </view>
+        <view class="metric-card">
+          <text class="metric-num">AI</text>
+          <text class="metric-label">校园助手</text>
         </view>
       </view>
     </view>
 
     <view class="search-box" @click="toSearch">
+      <view class="search-icon"></view>
       <text class="search-text">搜索活动、动态或用户</text>
     </view>
 
     <view class="menu-grid">
       <view class="menu-item" @click="toOrderList">
-        <text class="menu-icon">🎯</text>
+        <view class="menu-icon icon-calendar">
+          <view class="calendar-line"></view>
+          <view class="calendar-dot-row">
+            <view></view><view></view><view></view>
+          </view>
+        </view>
         <text class="menu-text">活动广场</text>
       </view>
       <view class="menu-item" @click="toContentList">
-        <text class="menu-icon">📝</text>
+        <view class="menu-icon icon-feed">
+          <view class="feed-line wide"></view>
+          <view class="feed-line"></view>
+          <view class="feed-line short"></view>
+        </view>
         <text class="menu-text">动态社区</text>
       </view>
       <view class="menu-item" @click="toCreateOrder">
-        <text class="menu-icon">➕</text>
+        <view class="menu-icon icon-plus">
+          <view class="plus-h"></view>
+          <view class="plus-v"></view>
+        </view>
         <text class="menu-text">发布活动</text>
       </view>
       <view class="menu-item" @click="toAIChat">
-        <text class="menu-icon">🤖</text>
+        <view class="menu-icon icon-ai">
+          <text>AI</text>
+        </view>
         <text class="menu-text">AI助手</text>
       </view>
     </view>
 
     <view class="section">
       <view class="section-title">
-        <text>推荐活动</text>
-        <text class="more" @click="toOrderList">更多 ></text>
+        <view>
+          <text class="section-heading">推荐活动</text>
+          <text class="section-desc">看看同学们正在约什么</text>
+        </view>
+        <text class="more" @click="toOrderList">更多</text>
       </view>
       <view v-if="orders.length > 0" class="order-list">
         <view v-for="order in orders" :key="order.id" class="order-item" @click="toOrderDetail(order.id)">
-          <view class="order-header">
+          <view class="order-left">
             <text class="order-type">{{ getActivityType(order.activityType) }}</text>
-            <text class="order-status">{{ getStatus(order.status) }}</text>
+            <text class="order-location">{{ order.location || '未设置地点' }}</text>
           </view>
-          <text class="order-location">📍 {{ order.location }}</text>
-          <text class="order-time">⏰ {{ formatTime(order.startTime) }}</text>
-          <view class="order-footer">
-            <text>{{ order.currentPeople }}/{{ order.maxPeople }}人</text>
+          <view class="order-right">
+            <text class="status-pill" :class="`status-${order.status || 'UNKNOWN'}`">{{ getStatus(order.status) }}</text>
+            <text class="order-time">{{ formatTime(order.startTime, 'MM-DD HH:mm') }}</text>
+          </view>
+          <view class="order-bottom">
+            <text>{{ order.currentPeople || 0 }}/{{ order.maxPeople || 0 }} 人</text>
             <text>{{ getCampus(order.campus) }}</text>
           </view>
         </view>
@@ -57,23 +97,47 @@
 
     <view class="section">
       <view class="section-title">
-        <text>热门动态</text>
-        <text class="more" @click="toContentList">更多 ></text>
+        <view>
+          <text class="section-heading">热门动态</text>
+          <text class="section-desc">校园里的即时分享</text>
+        </view>
+        <text class="more" @click="toContentList">更多</text>
       </view>
       <view v-if="contents.length > 0" class="content-list">
-        <view v-for="content in contents" :key="content.pid" class="content-item" @click="toContentDetail(content.pid)">
-          <view class="content-header">
-            <image v-if="content.user && content.user.avatarUrl" :src="content.user.avatarUrl" class="user-avatar" mode="aspectFill" />
-            <view class="user-info">
-              <text class="user-name">{{ content.user ? content.user.nickname : '匿名' }}</text>
-              <text class="content-time">{{ formatRelativeTime(content.createdAt) }}</text>
+        <view
+          v-for="content in contents"
+          :key="content.pid || content.id"
+          class="content-item"
+          @click="toContentDetail(content.pid || content.id)"
+        >
+          <view class="content-main">
+            <view class="content-header">
+              <image
+                v-if="content.user && content.user.avatarUrl"
+                :src="content.user.avatarUrl"
+                class="user-avatar"
+                mode="aspectFill"
+              />
+              <view v-else class="small-avatar">
+                <text>{{ getUserInitial(content.user) }}</text>
+              </view>
+              <view class="user-info">
+                <text class="user-name">{{ content.user ? content.user.nickname : '匿名用户' }}</text>
+                <text class="content-time">{{ formatRelativeTime(content.createdAt) }}</text>
+              </view>
+            </view>
+            <text class="content-text">{{ content.content }}</text>
+            <view class="content-footer">
+              <text class="count-item">赞 {{ content.likeCount || 0 }}</text>
+              <text class="count-item">评 {{ content.commentCount || 0 }}</text>
             </view>
           </view>
-          <text class="content-text">{{ content.content }}</text>
-          <view class="content-footer">
-            <text>👍 {{ content.likeCount || 0 }}</text>
-            <text>💬 {{ content.commentCount || 0 }}</text>
-          </view>
+          <image
+            v-if="content.media && content.media.length"
+            :src="content.media[0].url"
+            class="content-thumb"
+            mode="aspectFill"
+          />
         </view>
       </view>
       <view v-else class="empty">暂无热门动态</view>
@@ -83,7 +147,7 @@
 
 <script>
 import { orderApi, contentApi } from '@/api/index.js'
-import { formatTime, formatRelativeTime } from '@/utils/util.js'
+import { formatTime, formatRelativeTime, normalizeMediaList, resolveFileUrl } from '@/utils/util.js'
 import { ACTIVITY_TYPE_MAP, ORDER_STATUS_MAP, CAMPUS_MAP } from '@/utils/constants.js'
 
 export default {
@@ -96,11 +160,22 @@ export default {
   computed: {
     userInfo() {
       return this.$store.getters['user/userInfo']
+    },
+    avatarSrc() {
+      return this.userInfo && this.userInfo.avatarUrl ? resolveFileUrl(this.userInfo.avatarUrl) : ''
+    },
+    userInitial() {
+      return this.userInfo && this.userInfo.nickname ? this.userInfo.nickname.slice(0, 1) : '我'
+    },
+    welcomeText() {
+      return this.userInfo
+        ? `欢迎回来，${this.userInfo.nickname || '同学'}`
+        : '找到你的校园搭子'
     }
   },
   onLoad() {
-    this.loadData()
     this.$store.dispatch('user/initUserState')
+    this.loadData()
   },
   onShow() {
     this.loadData()
@@ -118,9 +193,16 @@ export default {
           contentApi.getContents({ page: 1, size: 5 }).catch(() => ({ list: [] }))
         ])
         this.orders = ordersRes?.list || []
-        this.contents = contentsRes?.list || []
+        this.contents = (contentsRes?.list || []).map(item => ({
+          ...item,
+          user: item.user ? {
+            ...item.user,
+            avatarUrl: resolveFileUrl(item.user.avatarUrl)
+          } : item.user,
+          media: normalizeMediaList(item)
+        }))
       } catch (error) {
-        console.error('加载数据失败:', error)
+        console.error('加载首页数据失败:', error)
         this.orders = []
         this.contents = []
       }
@@ -132,7 +214,10 @@ export default {
       return ORDER_STATUS_MAP[status] || '未知'
     },
     getCampus(campus) {
-      return CAMPUS_MAP[campus] || '其他'
+      return CAMPUS_MAP[campus] || '其他校区'
+    },
+    getUserInitial(user) {
+      return user && user.nickname ? user.nickname.slice(0, 1) : '用'
     },
     formatTime,
     formatRelativeTime,
@@ -144,12 +229,14 @@ export default {
       }
     },
     toSearch() {
-      uni.showToast({ title: '搜索功能开发中', icon: 'none' })
+      uni.navigateTo({ url: '/pages/search/index' })
     },
     toOrderList() {
+      uni.setStorageSync('orderListFilter', { mode: 'all' })
       uni.switchTab({ url: '/pages/order/list' })
     },
     toContentList() {
+      uni.setStorageSync('contentListFilter', { mode: 'all', keyword: '' })
       uni.switchTab({ url: '/pages/content/list' })
     },
     toCreateOrder() {
@@ -175,197 +262,436 @@ export default {
 <style>
 .container {
   min-height: 100vh;
-  background-color: #f5f5f5;
-  padding-bottom: 40rpx;
+  background: #f3f5f9;
+  padding-bottom: 44rpx;
 }
 
-.header {
+.app-top {
+  padding: 44rpx 30rpx 70rpx;
+  background: #1f447a;
+  color: #ffffff;
+}
+
+.hero-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 40rpx 30rpx 20rpx;
-  background-color: #fff;
+  justify-content: space-between;
 }
 
-.title {
+.hero-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.eyebrow {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.brand {
   font-size: 48rpx;
-  font-weight: bold;
-  color: #333;
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.hero-subtitle {
+  font-size: 25rpx;
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .avatar-box {
-  width: 80rpx;
-  height: 80rpx;
+  width: 82rpx;
+  height: 82rpx;
   border-radius: 50%;
   overflow: hidden;
+  border: 4rpx solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.16);
+  flex: 0 0 82rpx;
 }
 
-.avatar {
+.avatar,
+.avatar-placeholder {
   width: 100%;
   height: 100%;
 }
 
 .avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  background-color: #007AFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 32rpx;
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.metric-row {
+  margin-top: 30rpx;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14rpx;
+}
+
+.metric-card {
+  padding: 18rpx 16rpx;
+  border-radius: 12rpx;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1rpx solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.metric-num {
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.metric-label {
+  font-size: 21rpx;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .search-box {
-  margin: 20rpx 30rpx;
-  padding: 20rpx;
-  background-color: #fff;
-  border-radius: 10rpx;
+  margin: -40rpx 30rpx 18rpx;
+  height: 84rpx;
+  padding: 0 24rpx;
+  background: #ffffff;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  box-shadow: 0 12rpx 28rpx rgba(23, 42, 79, 0.14);
+}
+
+.search-icon {
+  width: 26rpx;
+  height: 26rpx;
+  border: 4rpx solid #8a94a6;
+  border-radius: 50%;
+  position: relative;
+  flex: 0 0 26rpx;
+}
+
+.search-icon::after {
+  content: '';
+  position: absolute;
+  width: 14rpx;
+  height: 4rpx;
+  background: #8a94a6;
+  right: -10rpx;
+  bottom: -4rpx;
+  transform: rotate(45deg);
+  border-radius: 999rpx;
 }
 
 .search-text {
-  color: #999;
-  font-size: 28rpx;
+  color: #8a94a6;
+  font-size: 27rpx;
 }
 
 .menu-grid {
-  display: flex;
-  justify-content: space-around;
-  padding: 30rpx;
-  background-color: #fff;
-  margin: 20rpx 30rpx;
-  border-radius: 10rpx;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10rpx;
+  padding: 24rpx 18rpx;
+  background-color: #ffffff;
+  margin: 18rpx 30rpx;
+  border-radius: 12rpx;
+  box-shadow: 0 8rpx 22rpx rgba(22, 34, 51, 0.06);
 }
 
 .menu-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 12rpx;
 }
 
 .menu-icon {
-  font-size: 60rpx;
-  margin-bottom: 10rpx;
+  width: 66rpx;
+  height: 66rpx;
+  border-radius: 12rpx;
+  background: #edf4ff;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1f447a;
+}
+
+.calendar-line {
+  position: absolute;
+  top: 18rpx;
+  left: 16rpx;
+  right: 16rpx;
+  height: 4rpx;
+  background: #1f447a;
+  border-radius: 999rpx;
+}
+
+.calendar-dot-row {
+  display: flex;
+  gap: 6rpx;
+  margin-top: 18rpx;
+}
+
+.calendar-dot-row view {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #1f447a;
+}
+
+.feed-line {
+  width: 34rpx;
+  height: 5rpx;
+  background: #1f447a;
+  border-radius: 999rpx;
+  margin: 4rpx 0;
+}
+
+.feed-line.wide {
+  width: 42rpx;
+}
+
+.feed-line.short {
+  width: 24rpx;
+}
+
+.plus-h,
+.plus-v {
+  position: absolute;
+  background: #1f447a;
+  border-radius: 999rpx;
+}
+
+.plus-h {
+  width: 34rpx;
+  height: 6rpx;
+}
+
+.plus-v {
+  width: 6rpx;
+  height: 34rpx;
+}
+
+.icon-ai text {
+  font-size: 24rpx;
+  font-weight: 800;
 }
 
 .menu-text {
-  font-size: 24rpx;
-  color: #333;
+  font-size: 23rpx;
+  color: #253044;
+  white-space: nowrap;
 }
 
 .section {
-  margin: 20rpx 30rpx;
-  background-color: #fff;
-  border-radius: 10rpx;
-  padding: 30rpx;
+  margin: 18rpx 30rpx;
+  background-color: #ffffff;
+  border-radius: 12rpx;
+  padding: 26rpx;
+  box-shadow: 0 8rpx 22rpx rgba(22, 34, 51, 0.06);
 }
 
 .section-title {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
+  align-items: flex-start;
+  margin-bottom: 22rpx;
+}
+
+.section-title view {
+  display: flex;
+  flex-direction: column;
+  gap: 5rpx;
+}
+
+.section-heading {
   font-size: 32rpx;
-  font-weight: bold;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #172033;
+}
+
+.section-desc {
+  font-size: 22rpx;
+  color: #8a94a6;
 }
 
 .more {
   font-size: 24rpx;
-  color: #007AFF;
-  font-weight: normal;
+  color: #1f447a;
+  font-weight: 700;
 }
 
-.order-list, .content-list {
+.order-list,
+.content-list {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 16rpx;
 }
 
-.order-item, .content-item {
-  padding: 20rpx;
-  background-color: #f9f9f9;
+.order-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12rpx 18rpx;
+  padding: 22rpx;
+  background-color: #f8fafc;
   border-radius: 10rpx;
+  border-left: 6rpx solid #1f447a;
 }
 
-.order-header {
+.order-left,
+.order-right {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 10rpx;
+  flex-direction: column;
+}
+
+.order-left {
+  gap: 8rpx;
+}
+
+.order-right {
+  align-items: flex-end;
+  gap: 12rpx;
 }
 
 .order-type {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #172033;
 }
 
-.order-status {
+.order-location,
+.order-time,
+.order-bottom {
+  color: #667085;
   font-size: 24rpx;
-  color: #007AFF;
 }
 
-.order-location, .order-time {
-  font-size: 24rpx;
-  color: #666;
-  margin: 5rpx 0;
+.status-pill {
+  padding: 7rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  color: #1f447a;
+  background: #edf4ff;
+  white-space: nowrap;
 }
 
-.order-footer {
+.status-COMPLETED,
+.status-IN_PROGRESS {
+  color: #087443;
+  background: #e8f7ef;
+}
+
+.status-CANCELLED,
+.status-EXPIRED {
+  color: #b42318;
+  background: #fff1f0;
+}
+
+.order-bottom {
+  grid-column: 1 / span 2;
   display: flex;
   justify-content: space-between;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #999;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #edf1f6;
+}
+
+.content-item {
+  display: flex;
+  gap: 18rpx;
+  padding: 22rpx;
+  background-color: #f8fafc;
+  border-radius: 10rpx;
+}
+
+.content-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .content-header {
   display: flex;
   align-items: center;
-  margin-bottom: 15rpx;
+  margin-bottom: 14rpx;
 }
 
-.user-avatar {
-  width: 60rpx;
-  height: 60rpx;
+.user-avatar,
+.small-avatar {
+  width: 54rpx;
+  height: 54rpx;
   border-radius: 50%;
-  margin-right: 15rpx;
+  margin-right: 14rpx;
+  flex-shrink: 0;
+}
+
+.small-avatar {
+  background: #edf4ff;
+  color: #1f447a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  font-weight: 800;
 }
 
 .user-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .user-name {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
+  font-size: 26rpx;
+  font-weight: 800;
+  color: #172033;
 }
 
 .content-time {
   font-size: 22rpx;
-  color: #999;
-  margin-top: 5rpx;
+  color: #8a94a6;
+  margin-top: 4rpx;
 }
 
 .content-text {
-  font-size: 28rpx;
-  color: #333;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 27rpx;
+  color: #344054;
   line-height: 1.6;
-  margin-bottom: 15rpx;
+}
+
+.content-thumb {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 10rpx;
+  background: #eef1f5;
+  flex-shrink: 0;
 }
 
 .content-footer {
   display: flex;
-  gap: 30rpx;
-  font-size: 24rpx;
-  color: #999;
+  gap: 24rpx;
+  margin-top: 14rpx;
+}
+
+.count-item {
+  font-size: 23rpx;
+  color: #8a94a6;
 }
 
 .empty {
   text-align: center;
-  padding: 40rpx;
-  color: #999;
-  font-size: 28rpx;
+  padding: 44rpx 0;
+  color: #8a94a6;
+  font-size: 27rpx;
 }
 </style>

@@ -7,6 +7,9 @@ export default {
   getOrders(params = {}) {
     return get('/orders', params)
   },
+  getMyOrders(page = 1, size = 20) {
+    return get('/orders/my', { page, size })
+  },
   getOrderDetail(orderId) {
     return get(`/orders/${orderId}`)
   },
@@ -27,6 +30,9 @@ export default {
   },
   auditApply(applyId, status) {
     return put(`/orders/applications/${applyId}`, { status })
+  },
+  acceptOrder(orderId, accepterId) {
+    return post(`/orders/${orderId}/accept`, { accepterId })
   },
   sendOrderMessage(orderId, content) {
     return post(`/orders/${orderId}/messages`, { content })
