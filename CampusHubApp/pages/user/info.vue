@@ -48,14 +48,22 @@
         </view>
       </view>
 
-      <view class="shortcut-row">
-        <view class="shortcut-card" @click="toMyOrders">
-          <text class="shortcut-title">我的活动</text>
-          <text class="shortcut-desc">查看发布记录</text>
+      <view class="insight-card">
+        <view class="insight-header">
+          <view>
+            <text class="insight-title">个人概览</text>
+            <text class="insight-desc">你在 CampusHub 的近期创作记录</text>
+          </view>
         </view>
-        <view class="shortcut-card" @click="toMyContents">
-          <text class="shortcut-title">我的动态</text>
-          <text class="shortcut-desc">管理分享内容</text>
+        <view class="insight-grid">
+          <view class="insight-item" @click="toMyOrders">
+            <text class="insight-num">{{ overviewLoading ? '--' : myOrderCount }}</text>
+            <text class="insight-label">发布活动</text>
+          </view>
+          <view class="insight-item" @click="toMyContents">
+            <text class="insight-num">{{ overviewLoading ? '--' : myContentCount }}</text>
+            <text class="insight-label">校园动态</text>
+          </view>
         </view>
       </view>
 
@@ -70,14 +78,14 @@
           <text class="menu-text">修改密码</text>
           <view class="menu-arrow"></view>
         </view>
-        <view class="menu-item" @click="toMyOrders">
-          <view class="menu-icon list-icon"></view>
-          <text class="menu-text">我发布的活动</text>
+        <view class="menu-item" @click="toSearch">
+          <view class="menu-icon search-icon"></view>
+          <text class="menu-text">校园搜索</text>
           <view class="menu-arrow"></view>
         </view>
-        <view class="menu-item" @click="toMyContents">
-          <view class="menu-icon note-icon"></view>
-          <text class="menu-text">我发布的动态</text>
+        <view class="menu-item" @click="toAIChat">
+          <view class="menu-icon ai-icon"></view>
+          <text class="menu-text">AI 助手</text>
           <view class="menu-arrow"></view>
         </view>
       </view>
@@ -88,9 +96,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useStore } from 'vuex'
+import { orderApi, contentApi } from '@/api/index.js'
 import { showLoading, hideLoading, showSuccess, showError, resolveFileUrl } from '@/utils/util.js'
 
 const store = useStore()
@@ -112,11 +121,52 @@ const userInitial = computed(() => {
   return String(name).slice(0, 1)
 })
 
+const overviewLoading = ref(false)
+const myOrderCount = ref(0)
+const myContentCount = ref(0)
+
+const currentUserId = computed(() => {
+  return String(
+    store.getters['user/userId'] ||
+    uni.getStorageSync('userId') ||
+    userInfo.value?.uid ||
+    userInfo.value?.id ||
+    ''
+  )
+})
+
 onShow(() => {
   if (isLogin.value) {
     store.dispatch('user/refreshUserInfo').catch(() => {})
+    loadUserOverview()
   }
 })
+
+const normalizePage = (result) => {
+  if (Array.isArray(result)) return result
+  if (Array.isArray(result?.list)) return result.list
+  if (Array.isArray(result?.records)) return result.records
+  return []
+}
+
+const loadUserOverview = async () => {
+  if (!isLogin.value) return
+
+  overviewLoading.value = true
+  try {
+    const [ordersRes, contentsRes] = await Promise.all([
+      orderApi.getMyOrders(1, 100).catch(() => ({ list: [] })),
+      contentApi.getContents({ page: 1, size: 100 }).catch(() => ({ list: [] }))
+    ])
+    myOrderCount.value = normalizePage(ordersRes).length
+    myContentCount.value = normalizePage(contentsRes).filter(item => {
+      const ownerId = item.user && (item.user.id || item.user.uid)
+      return String(ownerId || '') === currentUserId.value
+    }).length
+  } finally {
+    overviewLoading.value = false
+  }
+}
 
 const changeAvatar = () => {
   if (!isLogin.value) return
@@ -144,6 +194,14 @@ const toEdit = () => {
 
 const toChangePassword = () => {
   uni.navigateTo({ url: '/pages/user/change-password' })
+}
+
+const toSearch = () => {
+  uni.navigateTo({ url: '/pages/search/index' })
+}
+
+const toAIChat = () => {
+  uni.navigateTo({ url: '/pages/ai/chat' })
 }
 
 const toMyOrders = () => {
@@ -303,6 +361,8 @@ const handleLogout = () => {
 
 .user-content {
   min-height: 100vh;
+  padding-bottom: 174rpx;
+  box-sizing: border-box;
 }
 
 .profile-card {
@@ -423,33 +483,75 @@ const handleLogout = () => {
   color: #8a94a6;
 }
 
-.shortcut-row {
+.insight-card {
+  margin: 0 30rpx 18rpx;
+  padding: 26rpx;
+  border-radius: 30rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.74);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(244, 250, 255, 0.74));
+  box-shadow:
+    0 18rpx 38rpx rgba(22, 47, 84, 0.10),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
+}
+
+.insight-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.insight-header view {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.insight-title {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 850;
+}
+
+.insight-desc {
+  color: #8a94a6;
+  font-size: 23rpx;
+}
+
+.insight-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16rpx;
-  margin: 0 30rpx 18rpx;
 }
 
-.shortcut-card {
-  padding: 24rpx;
-  border-radius: 12rpx;
-  background: #ffffff;
-  box-shadow: 0 8rpx 22rpx rgba(22, 34, 51, 0.06);
+.insight-item {
+  min-height: 130rpx;
+  padding: 22rpx;
+  border-radius: 26rpx;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1rpx solid rgba(229, 237, 247, 0.84);
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 8rpx;
-  border-left: 6rpx solid #1f447a;
 }
 
-.shortcut-title {
-  color: #172033;
-  font-size: 28rpx;
-  font-weight: 800;
+.insight-item:active {
+  transform: scale(0.975);
+  opacity: 0.9;
 }
 
-.shortcut-desc {
-  color: #8a94a6;
-  font-size: 22rpx;
+.insight-num {
+  color: #1f447a;
+  font-size: 42rpx;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.insight-label {
+  color: #667085;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 .menu-list {
@@ -475,13 +577,20 @@ const handleLogout = () => {
 
 .menu-icon {
   position: relative;
-  width: 42rpx;
-  height: 42rpx;
+  width: 48rpx;
+  height: 48rpx;
   margin-right: 24rpx;
-  flex: 0 0 42rpx;
+  flex: 0 0 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .edit-icon {
+  width: 42rpx;
+  height: 42rpx;
   border: 3rpx solid #1f447a;
   border-radius: 8rpx;
   box-sizing: border-box;
@@ -511,20 +620,21 @@ const handleLogout = () => {
 }
 
 .lock-icon {
-  border: 3rpx solid #1f447a;
-  border-radius: 8rpx;
+  width: 48rpx;
+  height: 48rpx;
+  border: none;
+  border-radius: 0;
   box-sizing: border-box;
-  margin-top: 12rpx;
-  height: 30rpx;
+  margin-top: 0;
 }
 
 .lock-icon::before {
   content: "";
   position: absolute;
-  left: 9rpx;
-  top: -17rpx;
-  width: 20rpx;
-  height: 20rpx;
+  left: 13rpx;
+  top: 5rpx;
+  width: 22rpx;
+  height: 22rpx;
   border: 3rpx solid #1f447a;
   border-bottom: none;
   border-radius: 18rpx 18rpx 0 0;
@@ -534,54 +644,52 @@ const handleLogout = () => {
 .lock-icon::after {
   content: "";
   position: absolute;
-  left: 17rpx;
-  top: 10rpx;
-  width: 5rpx;
-  height: 12rpx;
-  border-radius: 999rpx;
-  background: #1f447a;
-}
-
-.list-icon,
-.note-icon {
+  left: 8rpx;
+  bottom: 6rpx;
+  width: 32rpx;
+  height: 25rpx;
   border: 3rpx solid #1f447a;
   border-radius: 8rpx;
   box-sizing: border-box;
+  background:
+    radial-gradient(circle at 50% 48%, #1f447a 0 3rpx, transparent 4rpx),
+    transparent;
 }
 
-.list-icon::before,
-.list-icon::after,
-.note-icon::before {
+.search-icon {
+  width: 40rpx;
+  height: 40rpx;
+  border: 3rpx solid #1f447a;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.search-icon::after {
   content: "";
   position: absolute;
-  left: 9rpx;
-  width: 21rpx;
+  right: 2rpx;
+  bottom: 4rpx;
+  width: 15rpx;
   height: 3rpx;
   border-radius: 999rpx;
   background: #1f447a;
+  transform: rotate(45deg);
 }
 
-.list-icon::before {
-  top: 9rpx;
-  box-shadow: 0 10rpx 0 #1f447a;
-}
-
-.list-icon::after {
-  top: 29rpx;
-}
-
-.note-icon::before {
-  top: 10rpx;
-  box-shadow: 0 10rpx 0 #1f447a;
-}
-
-.note-icon::after {
-  content: "";
-  position: absolute;
-  right: -3rpx;
-  bottom: -3rpx;
-  border-left: 14rpx solid transparent;
-  border-top: 14rpx solid #1f447a;
+.ai-icon::before {
+  content: "AI";
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 14rpx;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.92), transparent 42%),
+    linear-gradient(145deg, rgba(237, 247, 255, 0.96), rgba(210, 231, 255, 0.78));
+  color: #1f447a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 850;
 }
 
 .menu-text {
@@ -603,7 +711,7 @@ const handleLogout = () => {
   width: calc(100% - 60rpx);
   height: 84rpx;
   line-height: 84rpx;
-  margin: 28rpx 30rpx 44rpx;
+  margin: 28rpx 30rpx 0;
   border: none;
   border-radius: 999rpx;
   background: #fff1f0;

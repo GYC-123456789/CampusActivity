@@ -6,7 +6,6 @@
           <text class="page-title">动态</text>
           <text class="page-subtitle">{{ modeText }}</text>
         </view>
-        <button class="top-action" @click="goCreate">发布</button>
       </view>
     </view>
 
@@ -37,12 +36,13 @@
                 :src="content.user.avatarUrl"
                 class="avatar"
                 mode="aspectFill"
+                @click.stop="toProfile(content.user)"
               />
-              <view v-else class="avatar-placeholder">
+              <view v-else class="avatar-placeholder" @click.stop="toProfile(content.user)">
                 <text>{{ getUserInitial(content.user) }}</text>
               </view>
               <view class="user-meta">
-                <text class="user-name">{{ content.user ? content.user.nickname : '匿名用户' }}</text>
+                <text class="user-name" @click.stop="toProfile(content.user)">{{ content.user ? content.user.nickname : '匿名用户' }}</text>
                 <text class="item-time">{{ formatRelativeTime(content.createdAt) }}</text>
               </view>
             </view>
@@ -75,18 +75,20 @@
       </view>
     </scroll-view>
 
-    <view class="fab" @click="goCreate">
-      <view class="fab-h"></view>
-      <view class="fab-v"></view>
-    </view>
+    <glass-publish-menu />
   </view>
 </template>
 
 <script>
 import { contentApi } from '@/api/index.js'
 import { normalizeMediaList, formatRelativeTime, resolveFileUrl } from '@/utils/util.js'
+import GlassPublishMenu from '@/components/glass-publish-menu/glass-publish-menu.vue'
+import { goUserProfile } from '@/utils/user-navigation.js'
 
 export default {
+  components: {
+    GlassPublishMenu
+  },
   data() {
     return {
       contentList: [],
@@ -228,6 +230,9 @@ export default {
         return
       }
       uni.navigateTo({ url: '/pages/content/create' })
+    },
+    toProfile(user) {
+      goUserProfile(user)
     }
   }
 }
@@ -237,7 +242,10 @@ export default {
 .page {
   width: 100%;
   height: 100vh;
-  background: #f3f5f9;
+  background:
+    radial-gradient(circle at 18% 2%, rgba(78, 161, 255, 0.16), transparent 32%),
+    radial-gradient(circle at 92% 0%, rgba(30, 194, 214, 0.10), transparent 28%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4fb 52%, #f9fbff 100%);
   display: flex;
   flex-direction: column;
 }
@@ -292,10 +300,14 @@ export default {
 
 .mode-card {
   margin: -38rpx 30rpx 12rpx;
-  padding: 18rpx 22rpx;
-  background: #ffffff;
-  border-radius: 12rpx;
-  box-shadow: 0 12rpx 28rpx rgba(23, 42, 79, 0.14);
+  padding: 20rpx 24rpx;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(238, 248, 255, 0.72));
+  border: 1rpx solid rgba(255, 255, 255, 0.76);
+  border-radius: 30rpx;
+  box-shadow:
+    0 18rpx 38rpx rgba(23, 42, 79, 0.13),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -321,13 +333,31 @@ export default {
 }
 
 .item-box {
+  position: relative;
+  overflow: hidden;
   display: flex;
   gap: 18rpx;
-  background: #ffffff;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(244, 250, 255, 0.76));
   padding: 24rpx;
-  border-radius: 12rpx;
+  border-radius: 30rpx;
   margin-bottom: 18rpx;
-  box-shadow: 0 8rpx 22rpx rgba(22, 34, 51, 0.06);
+  box-shadow:
+    0 18rpx 38rpx rgba(22, 47, 84, 0.10),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(255, 255, 255, 0.76);
+}
+
+.item-box::before {
+  content: "";
+  position: absolute;
+  left: 22rpx;
+  right: 22rpx;
+  top: 10rpx;
+  height: 24rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.08));
+  pointer-events: none;
 }
 
 .item-main {
@@ -351,7 +381,9 @@ export default {
 }
 
 .avatar-placeholder {
-  background: #edf4ff;
+  background:
+    radial-gradient(circle at 32% 22%, rgba(255, 255, 255, 0.88), transparent 42%),
+    linear-gradient(145deg, rgba(237, 247, 255, 0.96), rgba(210, 231, 255, 0.78));
   color: #1f447a;
   display: flex;
   align-items: center;
@@ -391,9 +423,10 @@ export default {
 .item-thumb {
   width: 148rpx;
   height: 148rpx;
-  border-radius: 10rpx;
+  border-radius: 24rpx;
   background: #eef1f5;
   flex-shrink: 0;
+  box-shadow: 0 12rpx 26rpx rgba(22, 47, 84, 0.10);
 }
 
 .item-footer {
@@ -408,6 +441,10 @@ export default {
   gap: 8rpx;
   color: #667085;
   font-size: 24rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1rpx solid rgba(229, 237, 247, 0.86);
 }
 
 .chip-icon {
@@ -473,35 +510,4 @@ export default {
   color: #8a94a6;
 }
 
-.fab {
-  position: fixed;
-  right: 30rpx;
-  bottom: 180rpx;
-  width: 94rpx;
-  height: 94rpx;
-  background: #1f447a;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-  box-shadow: 0 10rpx 24rpx rgba(31, 68, 122, 0.32);
-}
-
-.fab-h,
-.fab-v {
-  position: absolute;
-  background: #ffffff;
-  border-radius: 999rpx;
-}
-
-.fab-h {
-  width: 36rpx;
-  height: 6rpx;
-}
-
-.fab-v {
-  width: 6rpx;
-  height: 36rpx;
-}
 </style>

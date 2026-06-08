@@ -1,6 +1,6 @@
 <template>
   <view class="container">
-    <view class="app-top">
+    <view class="app-top home-top">
       <view class="hero-row">
         <view class="hero-copy">
           <text class="eyebrow">校内活动预约与分享平台</text>
@@ -14,98 +14,83 @@
           </view>
         </view>
       </view>
-      <view class="metric-row">
-        <view class="metric-card">
-          <text class="metric-num">{{ orders.length }}</text>
-          <text class="metric-label">推荐活动</text>
-        </view>
-        <view class="metric-card">
-          <text class="metric-num">{{ contents.length }}</text>
-          <text class="metric-label">热门动态</text>
-        </view>
-        <view class="metric-card">
-          <text class="metric-num">AI</text>
-          <text class="metric-label">校园助手</text>
-        </view>
-      </view>
-    </view>
 
-    <view class="search-box" @click="toSearch">
-      <view class="search-icon"></view>
-      <text class="search-text">搜索活动、动态或用户</text>
-    </view>
-
-    <view class="menu-grid">
-      <view class="menu-item" @click="toOrderList">
-        <view class="menu-icon icon-calendar">
-          <view class="calendar-line"></view>
-          <view class="calendar-dot-row">
-            <view></view><view></view><view></view>
+      <view class="hero-actions">
+        <view class="hero-action" @click="toCreateOrder">
+          <view class="hero-action-icon order-icon">
+            <view class="order-line"></view>
+            <view class="order-dots"><view></view><view></view><view></view></view>
           </view>
+          <text>发起活动</text>
         </view>
-        <text class="menu-text">活动广场</text>
-      </view>
-      <view class="menu-item" @click="toContentList">
-        <view class="menu-icon icon-feed">
-          <view class="feed-line wide"></view>
-          <view class="feed-line"></view>
-          <view class="feed-line short"></view>
+        <view class="hero-action" @click="toCreateContent">
+          <view class="hero-action-icon content-icon">
+            <view class="content-bubble"></view>
+            <view class="content-line wide"></view>
+            <view class="content-line"></view>
+          </view>
+          <text>发布动态</text>
         </view>
-        <text class="menu-text">动态社区</text>
-      </view>
-      <view class="menu-item" @click="toCreateOrder">
-        <view class="menu-icon icon-plus">
-          <view class="plus-h"></view>
-          <view class="plus-v"></view>
+        <view class="hero-action" @click="toAIChat">
+          <view class="hero-action-icon ai-icon">
+            <text>AI</text>
+          </view>
+          <text>AI助手</text>
         </view>
-        <text class="menu-text">发布活动</text>
-      </view>
-      <view class="menu-item" @click="toAIChat">
-        <view class="menu-icon icon-ai">
-          <text>AI</text>
-        </view>
-        <text class="menu-text">AI助手</text>
       </view>
     </view>
 
     <view class="section">
       <view class="section-title">
         <view>
-          <text class="section-heading">推荐活动</text>
-          <text class="section-desc">看看同学们正在约什么</text>
+          <text class="section-heading">{{ orderSectionTitle }}</text>
+          <text class="section-desc">{{ orderSectionDesc }}</text>
         </view>
-        <text class="more" @click="toOrderList">更多</text>
+        <text class="more" @click="openOrderSection">全部</text>
       </view>
-      <view v-if="orders.length > 0" class="order-list">
-        <view v-for="order in orders" :key="order.id" class="order-item" @click="toOrderDetail(order.id)">
-          <view class="order-left">
-            <text class="order-type">{{ getActivityType(order.activityType) }}</text>
-            <text class="order-location">{{ order.location || '未设置地点' }}</text>
-          </view>
-          <view class="order-right">
-            <text class="status-pill" :class="`status-${order.status || 'UNKNOWN'}`">{{ getStatus(order.status) }}</text>
-            <text class="order-time">{{ formatTime(order.startTime, 'MM-DD HH:mm') }}</text>
-          </view>
-          <view class="order-bottom">
-            <text>{{ order.currentPeople || 0 }}/{{ order.maxPeople || 0 }} 人</text>
-            <text>{{ getCampus(order.campus) }}</text>
-          </view>
-        </view>
-      </view>
-      <view v-else class="empty">暂无推荐活动</view>
-    </view>
 
-    <view class="section">
-      <view class="section-title">
-        <view>
-          <text class="section-heading">热门动态</text>
-          <text class="section-desc">校园里的即时分享</text>
-        </view>
-        <text class="more" @click="toContentList">更多</text>
-      </view>
-      <view v-if="contents.length > 0" class="content-list">
+      <view v-if="primaryOrders.length > 0" class="order-list">
         <view
-          v-for="content in contents"
+          v-for="order in primaryOrders"
+          :key="order.oid || order.id"
+          class="order-item"
+          @click="toOrderDetail(order.oid || order.id)"
+        >
+          <view class="order-mark">
+            <text>{{ getActivityType(order.activityType).slice(0, 1) }}</text>
+          </view>
+          <view class="order-main">
+            <view class="order-head">
+              <text class="order-type">{{ getActivityType(order.activityType) }}</text>
+              <text class="status-pill" :class="`status-${order.status || 'UNKNOWN'}`">{{ getStatus(order.status) }}</text>
+            </view>
+            <text class="order-location">{{ order.location || '未设置地点' }}</text>
+            <view class="order-bottom">
+              <text>{{ formatTime(order.startTime, 'MM-DD HH:mm') }}</text>
+              <text>{{ order.currentPeople || 0 }}/{{ order.maxPeople || 0 }} 人</text>
+              <text>{{ getCampus(order.campus) }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view v-else class="empty-card" @click="toCreateOrder">
+        <text class="empty-title">{{ orderEmptyTitle }}</text>
+        <text class="empty-text">{{ orderEmptyText }}</text>
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">
+        <view>
+          <text class="section-heading">{{ contentSectionTitle }}</text>
+          <text class="section-desc">{{ contentSectionDesc }}</text>
+        </view>
+        <text class="more" @click="openContentSection">全部</text>
+      </view>
+
+      <view v-if="primaryContents.length > 0" class="content-list">
+        <view
+          v-for="content in primaryContents"
           :key="content.pid || content.id"
           class="content-item"
           @click="toContentDetail(content.pid || content.id)"
@@ -117,19 +102,20 @@
                 :src="content.user.avatarUrl"
                 class="user-avatar"
                 mode="aspectFill"
+                @click.stop="toProfile(content.user)"
               />
-              <view v-else class="small-avatar">
+              <view v-else class="small-avatar" @click.stop="toProfile(content.user)">
                 <text>{{ getUserInitial(content.user) }}</text>
               </view>
               <view class="user-info">
-                <text class="user-name">{{ content.user ? content.user.nickname : '匿名用户' }}</text>
+                <text class="user-name" @click.stop="toProfile(content.user)">{{ content.user ? content.user.nickname : '匿名用户' }}</text>
                 <text class="content-time">{{ formatRelativeTime(content.createdAt) }}</text>
               </view>
             </view>
-            <text class="content-text">{{ content.content }}</text>
+            <text class="content-text">{{ content.content || '暂无内容' }}</text>
             <view class="content-footer">
-              <text class="count-item">赞 {{ content.likeCount || 0 }}</text>
-              <text class="count-item">评 {{ content.commentCount || 0 }}</text>
+              <view class="count-chip"><text>赞 {{ content.likeCount || 0 }}</text></view>
+              <view class="count-chip"><text>评 {{ content.commentCount || 0 }}</text></view>
             </view>
           </view>
           <image
@@ -140,7 +126,34 @@
           />
         </view>
       </view>
-      <view v-else class="empty">暂无热门动态</view>
+      <view v-else class="empty-card" @click="toCreateContent">
+        <text class="empty-title">{{ contentEmptyTitle }}</text>
+        <text class="empty-text">{{ contentEmptyText }}</text>
+      </view>
+    </view>
+
+    <view v-if="isLogin && campusOrders.length > 0" class="section compact-section">
+      <view class="section-title">
+        <view>
+          <text class="section-heading">校园正在发生</text>
+          <text class="section-desc">看看同学们最近发起的活动</text>
+        </view>
+        <text class="more" @click="toOrderList">更多</text>
+      </view>
+      <scroll-view scroll-x class="campus-strip" show-scrollbar="false">
+        <view class="campus-scroll">
+          <view
+            v-for="order in campusOrders"
+            :key="order.oid || order.id"
+            class="campus-card"
+            @click="toOrderDetail(order.oid || order.id)"
+          >
+            <text class="campus-type">{{ getActivityType(order.activityType) }}</text>
+            <text class="campus-location">{{ order.location || '未设置地点' }}</text>
+            <text class="campus-meta">{{ formatTime(order.startTime, 'MM-DD HH:mm') }}</text>
+          </view>
+        </view>
+      </scroll-view>
     </view>
   </view>
 </template>
@@ -149,17 +162,27 @@
 import { orderApi, contentApi } from '@/api/index.js'
 import { formatTime, formatRelativeTime, normalizeMediaList, resolveFileUrl } from '@/utils/util.js'
 import { ACTIVITY_TYPE_MAP, ORDER_STATUS_MAP, CAMPUS_MAP } from '@/utils/constants.js'
+import { goUserProfile } from '@/utils/user-navigation.js'
 
 export default {
   data() {
     return {
-      orders: [],
-      contents: []
+      myOrders: [],
+      campusOrders: [],
+      myContents: [],
+      campusContents: [],
+      loading: false
     }
   },
   computed: {
     userInfo() {
       return this.$store.getters['user/userInfo']
+    },
+    isLogin() {
+      return this.$store.getters['user/isLogin'] || !!uni.getStorageSync('userId')
+    },
+    currentUserId() {
+      return String(this.$store.getters['user/userId'] || uni.getStorageSync('userId') || '')
     },
     avatarSrc() {
       return this.userInfo && this.userInfo.avatarUrl ? resolveFileUrl(this.userInfo.avatarUrl) : ''
@@ -168,9 +191,39 @@ export default {
       return this.userInfo && this.userInfo.nickname ? this.userInfo.nickname.slice(0, 1) : '我'
     },
     welcomeText() {
-      return this.userInfo
-        ? `欢迎回来，${this.userInfo.nickname || '同学'}`
-        : '找到你的校园搭子'
+      return this.isLogin
+        ? `欢迎回来，${this.userInfo?.nickname || '同学'}`
+        : '登录后可以管理你的活动与动态'
+    },
+    primaryOrders() {
+      return this.isLogin ? this.myOrders : this.campusOrders
+    },
+    primaryContents() {
+      return this.isLogin ? this.myContents : this.campusContents
+    },
+    orderSectionTitle() {
+      return this.isLogin ? '我发布的活动' : '校园活动'
+    },
+    orderSectionDesc() {
+      return this.isLogin ? '最近创建的预约订单' : '发现正在等待加入的活动'
+    },
+    orderEmptyTitle() {
+      return this.isLogin ? '还没有发起活动' : '暂无活动'
+    },
+    orderEmptyText() {
+      return this.isLogin ? '点这里发起一次新的校园活动。' : '登录后可以发起活动并查看自己的记录。'
+    },
+    contentSectionTitle() {
+      return this.isLogin ? '我发布的动态' : '校园动态'
+    },
+    contentSectionDesc() {
+      return this.isLogin ? '你最近分享的校园片段' : '同学们正在分享的新鲜事'
+    },
+    contentEmptyTitle() {
+      return this.isLogin ? '还没有发布动态' : '暂无动态'
+    },
+    contentEmptyText() {
+      return this.isLogin ? '点这里记录一次校园瞬间。' : '登录后可以发布动态并关联活动。'
     }
   },
   onLoad() {
@@ -186,25 +239,53 @@ export default {
     })
   },
   methods: {
+    normalizePage(result) {
+      if (Array.isArray(result)) return result
+      if (Array.isArray(result?.list)) return result.list
+      if (Array.isArray(result?.records)) return result.records
+      return []
+    },
+    normalizeContents(list) {
+      return list.map(item => ({
+        ...item,
+        user: item.user ? {
+          ...item.user,
+          avatarUrl: resolveFileUrl(item.user.avatarUrl)
+        } : item.user,
+        media: normalizeMediaList(item)
+      }))
+    },
+    isMineContent(content) {
+      const ownerId = content.user && (content.user.id || content.user.uid)
+      return String(ownerId || '') === this.currentUserId
+    },
     async loadData() {
+      if (this.loading) return
+      this.loading = true
       try {
-        const [ordersRes, contentsRes] = await Promise.all([
-          orderApi.getOrders({ page: 1, size: 5 }).catch(() => ({ list: [] })),
-          contentApi.getContents({ page: 1, size: 5 }).catch(() => ({ list: [] }))
-        ])
-        this.orders = ordersRes?.list || []
-        this.contents = (contentsRes?.list || []).map(item => ({
-          ...item,
-          user: item.user ? {
-            ...item.user,
-            avatarUrl: resolveFileUrl(item.user.avatarUrl)
-          } : item.user,
-          media: normalizeMediaList(item)
-        }))
+        const requests = [
+          orderApi.getOrders({ page: 1, size: 6 }).catch(() => ({ list: [] })),
+          contentApi.getContents({ page: 1, size: 30 }).catch(() => ({ list: [] }))
+        ]
+        if (this.isLogin) {
+          requests.push(orderApi.getMyOrders(1, 6).catch(() => ({ list: [] })))
+        }
+
+        const [ordersRes, contentsRes, myOrdersRes] = await Promise.all(requests)
+        this.campusOrders = this.normalizePage(ordersRes).slice(0, 5)
+
+        const contents = this.normalizeContents(this.normalizePage(contentsRes))
+        this.campusContents = contents.slice(0, 5)
+        this.myContents = this.isLogin ? contents.filter(this.isMineContent).slice(0, 5) : []
+        this.myOrders = this.isLogin ? this.normalizePage(myOrdersRes).slice(0, 5) : []
       } catch (error) {
         console.error('加载首页数据失败:', error)
-        this.orders = []
-        this.contents = []
+        this.myOrders = []
+        this.campusOrders = []
+        this.myContents = []
+        this.campusContents = []
+      } finally {
+        this.loading = false
       }
     },
     getActivityType(type) {
@@ -222,14 +303,18 @@ export default {
     formatTime,
     formatRelativeTime,
     toUser() {
-      if (!this.$store.getters['user/isLogin']) {
+      if (!this.isLogin) {
         uni.navigateTo({ url: '/pages/auth/login' })
       } else {
         uni.switchTab({ url: '/pages/user/info' })
       }
     },
-    toSearch() {
-      uni.navigateTo({ url: '/pages/search/index' })
+    requireLoginThen(callback) {
+      if (!this.isLogin) {
+        uni.navigateTo({ url: '/pages/auth/login' })
+        return
+      }
+      callback()
     },
     toOrderList() {
       uni.setStorageSync('orderListFilter', { mode: 'all' })
@@ -239,36 +324,54 @@ export default {
       uni.setStorageSync('contentListFilter', { mode: 'all', keyword: '' })
       uni.switchTab({ url: '/pages/content/list' })
     },
+    openOrderSection() {
+      uni.setStorageSync('orderListFilter', { mode: this.isLogin ? 'mine' : 'all' })
+      uni.switchTab({ url: '/pages/order/list' })
+    },
+    openContentSection() {
+      uni.setStorageSync('contentListFilter', { mode: this.isLogin ? 'mine' : 'all', keyword: '' })
+      uni.switchTab({ url: '/pages/content/list' })
+    },
     toCreateOrder() {
-      if (!this.$store.getters['user/isLogin']) {
-        uni.navigateTo({ url: '/pages/auth/login' })
-        return
-      }
-      uni.navigateTo({ url: '/pages/order/create' })
+      this.requireLoginThen(() => {
+        uni.navigateTo({ url: '/pages/order/create' })
+      })
+    },
+    toCreateContent() {
+      this.requireLoginThen(() => {
+        uni.navigateTo({ url: '/pages/content/create' })
+      })
     },
     toAIChat() {
       uni.navigateTo({ url: '/pages/ai/chat' })
     },
     toOrderDetail(orderId) {
+      if (!orderId) return
       uni.navigateTo({ url: `/pages/order/detail?id=${orderId}` })
     },
     toContentDetail(contentId) {
+      if (!contentId) return
       uni.navigateTo({ url: `/pages/content/detail?id=${contentId}` })
+    },
+    toProfile(user) {
+      goUserProfile(user)
     }
   }
 }
 </script>
 
-<style>
+<style scoped>
 .container {
   min-height: 100vh;
-  background: #f3f5f9;
-  padding-bottom: 44rpx;
+  padding-bottom: 152rpx;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(78, 161, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 92% 8%, rgba(24, 196, 214, 0.10), transparent 28%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4fb 48%, #f8fbff 100%);
 }
 
-.app-top {
-  padding: 44rpx 30rpx 70rpx;
-  background: #1f447a;
+.home-top {
+  padding: 44rpx 30rpx 74rpx;
   color: #ffffff;
 }
 
@@ -276,6 +379,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 26rpx;
 }
 
 .hero-copy {
@@ -292,9 +396,9 @@ export default {
 }
 
 .brand {
-  font-size: 48rpx;
-  line-height: 1.1;
-  font-weight: 800;
+  font-size: 52rpx;
+  line-height: 1.08;
+  font-weight: 850;
 }
 
 .hero-subtitle {
@@ -303,13 +407,13 @@ export default {
 }
 
 .avatar-box {
-  width: 82rpx;
-  height: 82rpx;
+  width: 86rpx;
+  height: 86rpx;
   border-radius: 50%;
   overflow: hidden;
-  border: 4rpx solid rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.16);
-  flex: 0 0 82rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.30);
+  background: rgba(255, 255, 255, 0.18);
+  flex: 0 0 86rpx;
 }
 
 .avatar,
@@ -327,335 +431,153 @@ export default {
   font-weight: 800;
 }
 
-.metric-row {
+.hero-actions {
   margin-top: 30rpx;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14rpx;
 }
 
-.metric-card {
-  padding: 18rpx 16rpx;
-  border-radius: 12rpx;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1rpx solid rgba(255, 255, 255, 0.18);
-  display: flex;
-  flex-direction: column;
-  gap: 4rpx;
-}
-
-.metric-num {
-  font-size: 30rpx;
-  font-weight: 800;
-}
-
-.metric-label {
-  font-size: 21rpx;
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.search-box {
-  margin: -40rpx 30rpx 18rpx;
-  height: 84rpx;
-  padding: 0 24rpx;
-  background: #ffffff;
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  box-shadow: 0 12rpx 28rpx rgba(23, 42, 79, 0.14);
-}
-
-.search-icon {
-  width: 26rpx;
-  height: 26rpx;
-  border: 4rpx solid #8a94a6;
-  border-radius: 50%;
-  position: relative;
-  flex: 0 0 26rpx;
-}
-
-.search-icon::after {
-  content: '';
-  position: absolute;
-  width: 14rpx;
-  height: 4rpx;
-  background: #8a94a6;
-  right: -10rpx;
-  bottom: -4rpx;
-  transform: rotate(45deg);
-  border-radius: 999rpx;
-}
-
-.search-text {
-  color: #8a94a6;
-  font-size: 27rpx;
-}
-
-.menu-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12rpx;
-  padding: 26rpx 18rpx 24rpx;
-  background-color: #ffffff;
-  margin: 18rpx 30rpx;
-  border-radius: 12rpx;
-  box-shadow: 0 8rpx 22rpx rgba(22, 34, 51, 0.06);
-}
-
-.menu-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14rpx;
-  border-radius: 22rpx;
-  transition: transform 0.18s ease, background-color 0.18s ease;
-}
-
-.menu-item:active {
-  background: rgba(31, 68, 122, 0.05);
-  transform: translateY(2rpx) scale(0.97);
-}
-
-.menu-icon {
-  width: 82rpx;
-  height: 82rpx;
-  border-radius: 25rpx;
+.hero-action {
+  min-height: 132rpx;
+  padding: 18rpx 12rpx;
+  border-radius: 28rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.28);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(223, 238, 255, 0.72));
-  position: relative;
+    linear-gradient(145deg, rgba(255, 255, 255, 0.23), rgba(255, 255, 255, 0.08));
+  box-shadow:
+    0 14rpx 30rpx rgba(8, 29, 61, 0.14),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.34);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #1f447a;
-  overflow: hidden;
-  border: 1rpx solid rgba(255, 255, 255, 0.78);
-  box-shadow:
-    0 14rpx 30rpx rgba(31, 68, 122, 0.14),
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.96);
+  gap: 12rpx;
+  -webkit-backdrop-filter: blur(20rpx) saturate(1.2);
+  backdrop-filter: blur(20rpx) saturate(1.2);
 }
 
-.menu-icon::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.86), transparent 48%);
-  opacity: 0.78;
-  pointer-events: none;
+.hero-action:active {
+  transform: scale(0.97);
+  opacity: 0.88;
 }
 
-.menu-icon::after {
-  content: "";
-  position: absolute;
-  right: -18rpx;
-  bottom: -18rpx;
-  width: 50rpx;
-  height: 50rpx;
-  border-radius: 999rpx;
-  background: rgba(77, 156, 232, 0.16);
-}
-
-.icon-calendar {
-  background:
-    linear-gradient(145deg, rgba(247, 252, 255, 0.96), rgba(217, 236, 255, 0.74)) !important;
-}
-
-.icon-feed {
-  background:
-    linear-gradient(145deg, rgba(248, 253, 255, 0.96), rgba(224, 246, 250, 0.74)) !important;
-}
-
-.icon-plus {
-  background:
-    linear-gradient(145deg, rgba(248, 252, 255, 0.96), rgba(226, 239, 255, 0.76)) !important;
-}
-
-.icon-ai {
-  background:
-    linear-gradient(145deg, rgba(249, 253, 255, 0.98), rgba(219, 238, 255, 0.78)) !important;
-}
-
-.calendar-line {
-  position: absolute;
-  z-index: 2;
-  top: 19rpx;
-  left: 18rpx;
-  width: 46rpx;
-  height: 36rpx;
-  border: 4rpx solid #1f447a;
-  border-top-width: 11rpx;
-  border-radius: 13rpx;
-  background: rgba(255, 255, 255, 0.68);
-  box-sizing: border-box;
-}
-
-.calendar-line::before,
-.calendar-line::after {
-  content: "";
-  position: absolute;
-  top: -14rpx;
-  width: 5rpx;
-  height: 12rpx;
-  border-radius: 999rpx;
-  background: #1f447a;
-}
-
-.calendar-line::before {
-  left: 8rpx;
-}
-
-.calendar-line::after {
-  right: 8rpx;
-}
-
-.calendar-dot-row {
-  position: absolute;
-  z-index: 2;
-  left: 28rpx;
-  top: 42rpx;
-  display: flex;
-  gap: 6rpx;
-}
-
-.calendar-dot-row view {
-  width: 7rpx;
-  height: 7rpx;
-  border-radius: 50%;
-  background: rgba(31, 68, 122, 0.68);
-}
-
-.feed-line {
-  position: relative;
-  z-index: 3;
-  width: 7rpx;
-  height: 7rpx;
-  background: #1f447a;
-  border-radius: 50%;
-  margin: 0 3rpx;
-}
-
-.icon-feed::before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  left: 18rpx;
-  top: 21rpx;
-  width: 48rpx;
-  height: 36rpx;
-  border: 4rpx solid #1f447a;
-  border-radius: 16rpx;
-  background: rgba(255, 255, 255, 0.58);
-  box-sizing: border-box;
-}
-
-.icon-feed::after {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  left: 25rpx;
-  bottom: 20rpx;
-  width: 13rpx;
-  height: 13rpx;
-  border-left: 4rpx solid #1f447a;
-  border-bottom: 4rpx solid #1f447a;
-  border-radius: 0 0 0 5rpx;
-  transform: skew(-20deg);
-}
-
-.feed-line.wide {
-  width: 7rpx;
-}
-
-.feed-line.short {
-  width: 7rpx;
-  opacity: 1;
-}
-
-.plus-h,
-.plus-v {
-  position: absolute;
-  z-index: 2;
-  background: #1f447a;
-  border-radius: 999rpx;
-  box-shadow: 0 6rpx 12rpx rgba(31, 68, 122, 0.18);
-}
-
-.icon-plus::before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  width: 50rpx;
-  height: 50rpx;
-  border-radius: 18rpx;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(219, 236, 255, 0.46));
-  border: 3rpx solid rgba(31, 68, 122, 0.14);
-}
-
-.plus-h {
-  width: 32rpx;
-  height: 8rpx;
-}
-
-.plus-v {
-  width: 8rpx;
-  height: 32rpx;
-}
-
-.icon-ai::before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  left: 15rpx;
-  top: 18rpx;
-  width: 8rpx;
-  height: 8rpx;
-  background: #1f447a;
-  border-radius: 999rpx;
-  box-shadow:
-    0 -8rpx 0 -2rpx #1f447a,
-    0 8rpx 0 -2rpx #1f447a,
-    -8rpx 0 0 -2rpx #1f447a,
-    8rpx 0 0 -2rpx #1f447a;
-  opacity: 0.52;
-}
-
-.icon-ai::after {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  right: 14rpx;
-  top: 16rpx;
-  width: 11rpx;
-  height: 11rpx;
-  border-radius: 999rpx;
-  background: rgba(31, 68, 122, 0.22);
-  box-shadow: -5rpx 30rpx 0 rgba(25, 128, 178, 0.20);
-}
-
-.icon-ai text {
-  position: relative;
-  z-index: 2;
-  font-size: 28rpx;
-  font-weight: 800;
-  letter-spacing: 0;
-  color: #1f447a;
-  text-shadow: 0 6rpx 12rpx rgba(31, 68, 122, 0.12);
-}
-
-.menu-text {
+.hero-action text {
+  color: #ffffff;
   font-size: 24rpx;
-  color: #253044;
-  font-weight: 700;
+  font-weight: 750;
   white-space: nowrap;
 }
 
+.hero-action-icon {
+  position: relative;
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 20rpx;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.95), transparent 44%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(213, 235, 255, 0.62));
+  color: #1f447a;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.88);
+}
+
+.order-line {
+  position: absolute;
+  left: 14rpx;
+  top: 14rpx;
+  width: 30rpx;
+  height: 26rpx;
+  border: 3rpx solid currentColor;
+  border-top-width: 8rpx;
+  border-radius: 9rpx;
+  box-sizing: border-box;
+}
+
+.order-dots {
+  position: absolute;
+  left: 19rpx;
+  top: 33rpx;
+  display: flex;
+  gap: 4rpx;
+}
+
+.order-dots view {
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.content-bubble {
+  position: absolute;
+  left: 13rpx;
+  top: 15rpx;
+  width: 34rpx;
+  height: 26rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 13rpx;
+  box-sizing: border-box;
+}
+
+.content-bubble::after {
+  content: "";
+  position: absolute;
+  left: 5rpx;
+  bottom: -8rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border-left: 3rpx solid currentColor;
+  border-bottom: 3rpx solid currentColor;
+  transform: skew(-18deg);
+}
+
+.content-line {
+  position: absolute;
+  left: 22rpx;
+  top: 29rpx;
+  width: 15rpx;
+  height: 4rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+}
+
+.content-line.wide {
+  top: 22rpx;
+  width: 20rpx;
+}
+
+.ai-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-icon text {
+  color: #1f447a;
+  font-size: 24rpx;
+  font-weight: 850;
+}
+
 .section {
-  margin: 18rpx 30rpx;
-  background-color: #ffffff;
-  border-radius: 12rpx;
+  margin: -36rpx 30rpx 54rpx;
   padding: 26rpx;
-  box-shadow: 0 8rpx 22rpx rgba(22, 34, 51, 0.06);
+  border-radius: 30rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.74);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(244, 250, 255, 0.74));
+  box-shadow:
+    0 18rpx 38rpx rgba(22, 47, 84, 0.10),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(24rpx) saturate(1.24);
+  backdrop-filter: blur(24rpx) saturate(1.24);
+}
+
+.section + .section {
+  margin-top: 18rpx;
+}
+
+.compact-section {
+  margin-bottom: 34rpx;
 }
 
 .section-title {
@@ -663,9 +585,12 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 22rpx;
+  gap: 18rpx;
 }
 
 .section-title view {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 5rpx;
@@ -674,7 +599,7 @@ export default {
 .section-heading {
   font-size: 32rpx;
   line-height: 1.2;
-  font-weight: 800;
+  font-weight: 850;
   color: #172033;
 }
 
@@ -684,9 +609,12 @@ export default {
 }
 
 .more {
-  font-size: 24rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
   color: #1f447a;
-  font-weight: 700;
+  background: rgba(237, 247, 255, 0.78);
+  font-size: 24rpx;
+  font-weight: 750;
 }
 
 .order-list,
@@ -697,50 +625,61 @@ export default {
 }
 
 .order-item {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12rpx 18rpx;
-  padding: 22rpx;
-  background-color: #f8fafc;
-  border-radius: 10rpx;
-  border-left: 6rpx solid #1f447a;
+  display: flex;
+  gap: 16rpx;
+  padding: 20rpx;
+  border-radius: 26rpx;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1rpx solid rgba(229, 237, 247, 0.84);
 }
 
-.order-left,
-.order-right {
+.order-mark {
+  width: 62rpx;
+  height: 62rpx;
+  flex: 0 0 62rpx;
+  border-radius: 20rpx;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.92), transparent 42%),
+    linear-gradient(145deg, rgba(237, 247, 255, 0.96), rgba(210, 231, 255, 0.78));
+  color: #1f447a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 850;
+}
+
+.order-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-}
-
-.order-left {
   gap: 8rpx;
 }
 
-.order-right {
-  align-items: flex-end;
+.order-head {
+  display: flex;
+  align-items: center;
   gap: 12rpx;
 }
 
 .order-type {
-  font-size: 30rpx;
-  font-weight: 800;
+  flex: 1;
+  min-width: 0;
+  font-size: 29rpx;
+  font-weight: 850;
   color: #172033;
-}
-
-.order-location,
-.order-time,
-.order-bottom {
-  color: #667085;
-  font-size: 24rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-pill {
-  padding: 7rpx 16rpx;
+  padding: 7rpx 14rpx;
   border-radius: 999rpx;
-  font-size: 22rpx;
   color: #1f447a;
   background: #edf4ff;
+  font-size: 21rpx;
+  font-weight: 750;
   white-space: nowrap;
 }
 
@@ -756,20 +695,31 @@ export default {
   background: #fff1f0;
 }
 
+.order-location,
 .order-bottom {
-  grid-column: 1 / span 2;
+  color: #667085;
+  font-size: 23rpx;
+}
+
+.order-location {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-bottom {
   display: flex;
-  justify-content: space-between;
-  padding-top: 12rpx;
-  border-top: 1rpx solid #edf1f6;
+  flex-wrap: wrap;
+  gap: 14rpx;
 }
 
 .content-item {
   display: flex;
   gap: 18rpx;
-  padding: 22rpx;
-  background-color: #f8fafc;
-  border-radius: 10rpx;
+  padding: 20rpx;
+  border-radius: 26rpx;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1rpx solid rgba(229, 237, 247, 0.84);
 }
 
 .content-main {
@@ -831,28 +781,84 @@ export default {
 }
 
 .content-thumb {
-  width: 128rpx;
-  height: 128rpx;
-  border-radius: 10rpx;
+  width: 126rpx;
+  height: 126rpx;
+  border-radius: 24rpx;
   background: #eef1f5;
   flex-shrink: 0;
 }
 
 .content-footer {
   display: flex;
-  gap: 24rpx;
+  gap: 12rpx;
   margin-top: 14rpx;
 }
 
-.count-item {
-  font-size: 23rpx;
-  color: #8a94a6;
+.count-chip {
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.74);
+  color: #667085;
+  font-size: 22rpx;
 }
 
-.empty {
-  text-align: center;
-  padding: 44rpx 0;
-  color: #8a94a6;
-  font-size: 27rpx;
+.empty-card {
+  padding: 36rpx 28rpx;
+  border-radius: 26rpx;
+  border: 1rpx dashed rgba(31, 68, 122, 0.20);
+  background: rgba(255, 255, 255, 0.52);
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.empty-title {
+  color: #172033;
+  font-size: 29rpx;
+  font-weight: 850;
+}
+
+.empty-text {
+  color: #667085;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.campus-strip {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.campus-scroll {
+  display: inline-flex;
+  gap: 16rpx;
+  padding-bottom: 2rpx;
+}
+
+.campus-card {
+  width: 252rpx;
+  padding: 20rpx;
+  border-radius: 26rpx;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1rpx solid rgba(229, 237, 247, 0.84);
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8rpx;
+  box-sizing: border-box;
+}
+
+.campus-type {
+  color: #172033;
+  font-size: 28rpx;
+  font-weight: 850;
+}
+
+.campus-location,
+.campus-meta {
+  color: #667085;
+  font-size: 23rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

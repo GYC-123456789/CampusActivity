@@ -42,6 +42,12 @@
       }
     },
     {
+      "path": "pages/user/profile",
+      "style": {
+        "navigationBarTitleText": "用户主页"
+      }
+    },
+    {
       "path": "pages/auth/login",
       "style": {
         "navigationBarTitleText": "登录",

@@ -83,3 +83,7 @@ runlogs/
 !.env.example
 !*.env.example
 !.env.prod.example
+.secrets/
+*.keystore
+*.jks
+*.apk

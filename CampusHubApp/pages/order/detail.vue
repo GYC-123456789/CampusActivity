@@ -101,7 +101,7 @@
         <view class="section-header">
           <text class="section-title">发布者</text>
         </view>
-        <view class="user-row">
+        <view class="user-row" @click="toProfile(publisher)">
           <image
             v-if="publisher && publisher.avatarUrl"
             :src="publisher.avatarUrl"
@@ -128,7 +128,7 @@
             :key="app.apid || app.id"
             class="application-item"
           >
-            <view class="application-user">
+            <view class="application-user" @click.stop="toProfile(app.user)">
               <image
                 v-if="app.user && app.user.avatarUrl"
                 :src="app.user.avatarUrl"
@@ -205,6 +205,7 @@ import { useStore } from 'vuex'
 import { orderApi, userApi } from '@/api/index.js'
 import { formatTime, showLoading, hideLoading, showSuccess, showError, resolveFileUrl } from '@/utils/util.js'
 import { ACTIVITY_TYPE_MAP, CAMPUS_MAP, APPLY_STATUS_MAP, ORDER_STATUS_MAP, GENDER_REQUIRE_MAP } from '@/utils/constants.js'
+import { goUserProfile } from '@/utils/user-navigation.js'
 
 const store = useStore()
 
@@ -655,6 +656,10 @@ const toMessages = () => {
   })
 }
 
+const toProfile = (user) => {
+  goUserProfile(user)
+}
+
 onLoad((options = {}) => {
   if (options.id) {
     orderId.value = options.id
@@ -668,7 +673,10 @@ onLoad((options = {}) => {
 <style scoped>
 .order-detail-container {
   min-height: 100vh;
-  background: #f5f7fb;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(78, 161, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 92% 6%, rgba(24, 196, 214, 0.10), transparent 30%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4fb 50%, #f8fbff 100%);
   padding-bottom: 148rpx;
 }
 
@@ -678,10 +686,15 @@ onLoad((options = {}) => {
 
 .hero-card,
 .info-section {
-  background: #ffffff;
-  border: 1rpx solid #e8edf5;
-  border-radius: 8rpx;
-  box-shadow: 0 10rpx 28rpx rgba(18, 38, 63, 0.06);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(244, 250, 255, 0.74));
+  border: 1rpx solid rgba(255, 255, 255, 0.74);
+  border-radius: 32rpx;
+  box-shadow:
+    0 18rpx 38rpx rgba(22, 47, 84, 0.10),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(24rpx) saturate(1.24);
+  backdrop-filter: blur(24rpx) saturate(1.24);
 }
 
 .hero-card {
@@ -707,7 +720,7 @@ onLoad((options = {}) => {
   border-radius: 999rpx;
   font-size: 23rpx;
   font-weight: 700;
-  background: #eef3f8;
+  background: rgba(238, 246, 255, 0.88);
   color: #475467;
 }
 
@@ -840,14 +853,14 @@ onLoad((options = {}) => {
   line-height: 54rpx;
   padding: 0 20rpx;
   border: none;
-  border-radius: 8rpx;
-  background: #eff6ff;
-  color: #1d4ed8;
+  border-radius: 18rpx;
+  background: rgba(239, 246, 255, 0.88);
+  color: #1f447a;
   font-size: 24rpx;
 }
 
 .text-btn.primary {
-  background: #1d4ed8;
+  background: linear-gradient(135deg, #2f7ed8, #1f447a);
   color: #ffffff;
 }
 
@@ -908,9 +921,9 @@ onLoad((options = {}) => {
 .picker-view {
   width: 100%;
   box-sizing: border-box;
-  border: 1rpx solid #d9e0ea;
-  border-radius: 8rpx;
-  background: #fbfcfe;
+  border: 1rpx solid rgba(217, 229, 243, 0.92);
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.68);
   color: #1f2937;
   font-size: 28rpx;
 }
@@ -944,10 +957,10 @@ onLoad((options = {}) => {
   height: 82rpx;
   line-height: 82rpx;
   padding: 0;
-  border-radius: 8rpx;
-  border: 1rpx solid #d9e0ea;
-  background: #ffffff;
-  color: #1d4ed8;
+  border-radius: 22rpx;
+  border: 1rpx solid rgba(217, 229, 243, 0.92);
+  background: rgba(255, 255, 255, 0.74);
+  color: #1f447a;
   font-size: 34rpx;
 }
 
@@ -992,8 +1005,10 @@ onLoad((options = {}) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #eef3f8;
-  color: #1d4ed8;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.92), transparent 42%),
+    linear-gradient(145deg, rgba(237, 247, 255, 0.96), rgba(210, 231, 255, 0.78));
+  color: #1f447a;
   font-size: 30rpx;
   font-weight: 800;
 }
@@ -1033,8 +1048,9 @@ onLoad((options = {}) => {
   display: flex;
   justify-content: space-between;
   gap: 16rpx;
-  background: #f8fafc;
-  border-radius: 8rpx;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1rpx solid rgba(229, 237, 247, 0.84);
+  border-radius: 24rpx;
 }
 
 .small-avatar {
@@ -1088,7 +1104,7 @@ onLoad((options = {}) => {
   line-height: 48rpx;
   padding: 0 16rpx;
   border: none;
-  border-radius: 8rpx;
+  border-radius: 16rpx;
   color: #ffffff;
   font-size: 22rpx;
 }
@@ -1110,8 +1126,9 @@ onLoad((options = {}) => {
   align-items: center;
   justify-content: space-between;
   padding: 22rpx;
-  border-radius: 8rpx;
-  background: #f8fafc;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1rpx solid rgba(229, 237, 247, 0.84);
 }
 
 .apply-label {
@@ -1140,9 +1157,11 @@ onLoad((options = {}) => {
   padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom));
   display: flex;
   gap: 16rpx;
-  background: rgba(255, 255, 255, 0.96);
-  border-top: 1rpx solid #e8edf5;
-  box-shadow: 0 -8rpx 24rpx rgba(17, 24, 39, 0.08);
+  background: rgba(248, 251, 255, 0.86);
+  border-top: 1rpx solid rgba(255, 255, 255, 0.74);
+  box-shadow: 0 -12rpx 30rpx rgba(17, 24, 39, 0.08);
+  -webkit-backdrop-filter: blur(24rpx) saturate(1.25);
+  backdrop-filter: blur(24rpx) saturate(1.25);
 }
 
 .bottom-btn {
@@ -1151,16 +1170,17 @@ onLoad((options = {}) => {
   line-height: 84rpx;
   padding: 0;
   border: none;
-  border-radius: 8rpx;
-  background: #eef3f8;
+  border-radius: 26rpx;
+  background: rgba(238, 246, 255, 0.86);
   color: #475467;
   font-size: 27rpx;
   font-weight: 700;
 }
 
 .bottom-btn.primary {
-  background: #1d4ed8;
+  background: linear-gradient(135deg, #2f7ed8, #1f447a);
   color: #ffffff;
+  box-shadow: 0 14rpx 28rpx rgba(31, 68, 122, 0.20);
 }
 
 .bottom-btn.danger {

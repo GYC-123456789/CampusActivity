@@ -57,7 +57,7 @@
         <text class="section-count">{{ users.length }}</text>
       </view>
       <view v-if="users.length" class="result-list">
-        <view v-for="user in users" :key="user.uid || user.id" class="user-item">
+        <view v-for="user in users" :key="user.uid || user.id" class="user-item" @click="toProfile(user)">
           <image v-if="user.avatarUrl" :src="resolveAvatar(user.avatarUrl)" class="user-avatar" mode="aspectFill" />
           <view v-else class="avatar-placeholder">
             <text>{{ getUserInitial(user) }}</text>
@@ -82,6 +82,7 @@
 import { orderApi, contentApi, userApi } from '@/api/index.js'
 import { normalizeMediaList, resolveFileUrl } from '@/utils/util.js'
 import { ACTIVITY_TYPE_MAP, CAMPUS_MAP, ORDER_STATUS_MAP } from '@/utils/constants.js'
+import { goUserProfile } from '@/utils/user-navigation.js'
 
 export default {
   data() {
@@ -190,6 +191,9 @@ export default {
     resolveAvatar(url) {
       return resolveFileUrl(url)
     },
+    toProfile(user) {
+      goUserProfile(user)
+    },
     getUserInitial(user) {
       return (user && user.nickname ? user.nickname.slice(0, 1) : '用')
     },
@@ -209,24 +213,37 @@ export default {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f8f8f8;
-  padding: 24rpx;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(78, 161, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 92% 6%, rgba(24, 196, 214, 0.10), transparent 30%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4fb 50%, #f8fbff 100%);
+  padding: 28rpx;
   box-sizing: border-box;
 }
 
 .search-bar {
   display: flex;
   gap: 16rpx;
-  margin-bottom: 24rpx;
+  margin-bottom: 28rpx;
+  padding: 14rpx;
+  border-radius: 30rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.74);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(244, 250, 255, 0.74));
+  box-shadow:
+    0 18rpx 38rpx rgba(22, 47, 84, 0.10),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(24rpx) saturate(1.24);
+  backdrop-filter: blur(24rpx) saturate(1.24);
 }
 
 .search-input {
   flex: 1;
   height: 76rpx;
   padding: 0 24rpx;
-  border-radius: 12rpx;
-  background: #ffffff;
-  border: 2rpx solid #e8e8e8;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1rpx solid rgba(217, 229, 243, 0.92);
   font-size: 28rpx;
 }
 
@@ -234,8 +251,8 @@ export default {
   width: 132rpx;
   height: 76rpx;
   border: none;
-  border-radius: 12rpx;
-  background: #007aff;
+  border-radius: 22rpx;
+  background: linear-gradient(135deg, #2f7ed8, #1f447a);
   color: #ffffff;
   font-size: 28rpx;
   line-height: 76rpx;
@@ -243,14 +260,19 @@ export default {
 }
 
 .search-btn[disabled] {
-  background: #cccccc;
+  background: #c7d2df;
 }
 
 .section {
-  margin-bottom: 24rpx;
-  padding: 24rpx;
-  border-radius: 14rpx;
-  background: #ffffff;
+  margin-bottom: 26rpx;
+  padding: 26rpx;
+  border-radius: 30rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.74);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(244, 250, 255, 0.74));
+  box-shadow:
+    0 18rpx 38rpx rgba(22, 47, 84, 0.10),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
 }
 
 .section-title {
@@ -258,9 +280,9 @@ export default {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 18rpx;
-  color: #333333;
+  color: #172033;
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 850;
 }
 
 .section-actions {
@@ -270,13 +292,13 @@ export default {
 }
 
 .section-count {
-  color: #999999;
+  color: #8a94a6;
   font-size: 24rpx;
   font-weight: normal;
 }
 
 .more-link {
-  color: #007aff;
+  color: #1f447a;
   font-size: 24rpx;
   font-weight: normal;
 }
@@ -288,29 +310,32 @@ export default {
 
 .result-item,
 .user-item {
-  padding: 22rpx 0;
-  border-top: 2rpx solid #f2f2f2;
+  margin-top: 14rpx;
+  padding: 20rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1rpx solid rgba(229, 237, 247, 0.84);
 }
 
 .result-title {
   display: block;
   margin-bottom: 8rpx;
-  color: #333333;
+  color: #172033;
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .result-desc {
   display: block;
   margin-bottom: 8rpx;
-  color: #666666;
+  color: #475467;
   font-size: 26rpx;
   line-height: 1.5;
 }
 
 .result-meta {
   display: block;
-  color: #999999;
+  color: #8a94a6;
   font-size: 24rpx;
 }
 
@@ -332,8 +357,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #eef5ff;
-  color: #007aff;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.92), transparent 42%),
+    linear-gradient(145deg, rgba(237, 247, 255, 0.96), rgba(210, 231, 255, 0.78));
+  color: #1f447a;
   font-size: 30rpx;
 }
 
@@ -344,7 +371,7 @@ export default {
 
 .empty-line {
   padding: 26rpx 0;
-  color: #999999;
+  color: #8a94a6;
   font-size: 26rpx;
   text-align: center;
 }
@@ -356,17 +383,25 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 16rpx;
-  color: #999999;
+  color: #8a94a6;
+  margin-top: 40rpx;
+  border-radius: 34rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.74);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(244, 250, 255, 0.64));
+  box-shadow:
+    0 18rpx 38rpx rgba(22, 47, 84, 0.08),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.90);
 }
 
 .hint-title {
-  color: #333333;
+  color: #172033;
   font-size: 34rpx;
-  font-weight: 600;
+  font-weight: 850;
 }
 
 .hint-text {
-  color: #999999;
+  color: #8a94a6;
   font-size: 26rpx;
 }
 </style>

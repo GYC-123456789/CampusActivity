@@ -179,13 +179,24 @@ const handleSubmit = async () => {
 <style scoped>
 .create-content-container {
   min-height: 100vh;
-  background: #f5f7fb;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(78, 161, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 92% 6%, rgba(24, 196, 214, 0.10), transparent 30%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4fb 50%, #f8fbff 100%);
   padding: 32rpx 28rpx 148rpx;
   box-sizing: border-box;
 }
 
 .header-block {
   margin-bottom: 28rpx;
+  padding: 32rpx;
+  border-radius: 32rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.74);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(238, 248, 255, 0.72));
+  box-shadow:
+    0 18rpx 38rpx rgba(22, 47, 84, 0.10),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
 }
 
 .page-title {
@@ -205,11 +216,16 @@ const handleSubmit = async () => {
 }
 
 .form-panel {
-  background: #ffffff;
-  border: 1rpx solid #e8edf5;
-  border-radius: 8rpx;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(244, 250, 255, 0.74));
+  border: 1rpx solid rgba(255, 255, 255, 0.74);
+  border-radius: 32rpx;
   padding: 28rpx;
-  box-shadow: 0 10rpx 30rpx rgba(18, 38, 63, 0.06);
+  box-shadow:
+    0 18rpx 38rpx rgba(22, 47, 84, 0.10),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(24rpx) saturate(1.24);
+  backdrop-filter: blur(24rpx) saturate(1.24);
 }
 
 .form-item {
@@ -232,10 +248,10 @@ const handleSubmit = async () => {
   width: 100%;
   min-height: 300rpx;
   padding: 24rpx;
-  border: 1rpx solid #d9e0ea;
-  border-radius: 8rpx;
+  border: 1rpx solid rgba(217, 229, 243, 0.92);
+  border-radius: 26rpx;
   box-sizing: border-box;
-  background: #fbfcfe;
+  background: rgba(255, 255, 255, 0.68);
   color: #1f2937;
   font-size: 28rpx;
   line-height: 1.6;
@@ -256,9 +272,10 @@ const handleSubmit = async () => {
   align-items: center;
   justify-content: space-between;
   border: 1rpx solid #d9e0ea;
-  border-radius: 8rpx;
+  border: 1rpx solid rgba(217, 229, 243, 0.92);
+  border-radius: 22rpx;
   box-sizing: border-box;
-  background: #fbfcfe;
+  background: rgba(255, 255, 255, 0.68);
   color: #1f2937;
   font-size: 28rpx;
 }
@@ -288,9 +305,10 @@ const handleSubmit = async () => {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  border-radius: 8rpx;
+  border-radius: 28rpx;
   overflow: hidden;
   background: #eef3f8;
+  box-shadow: 0 16rpx 32rpx rgba(22, 47, 84, 0.10);
 }
 
 .preview-image {
@@ -307,7 +325,7 @@ const handleSubmit = async () => {
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.76);
+  background: rgba(15, 23, 42, 0.64);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -347,9 +365,11 @@ const handleSubmit = async () => {
   align-items: center;
   justify-content: center;
   gap: 16rpx;
-  border: 2rpx dashed #bfd0e3;
-  border-radius: 8rpx;
-  background: #f8fafc;
+  border: 2rpx dashed rgba(154, 184, 218, 0.80);
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 28% 16%, rgba(255, 255, 255, 0.86), transparent 42%),
+    rgba(255, 255, 255, 0.58);
   color: #475467;
   font-size: 28rpx;
 }
@@ -393,9 +413,11 @@ const handleSubmit = async () => {
   padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom));
   display: flex;
   gap: 18rpx;
-  background: rgba(255, 255, 255, 0.96);
-  border-top: 1rpx solid #e8edf5;
-  box-shadow: 0 -8rpx 24rpx rgba(17, 24, 39, 0.08);
+  background: rgba(248, 251, 255, 0.86);
+  border-top: 1rpx solid rgba(255, 255, 255, 0.74);
+  box-shadow: 0 -12rpx 30rpx rgba(17, 24, 39, 0.08);
+  -webkit-backdrop-filter: blur(24rpx) saturate(1.25);
+  backdrop-filter: blur(24rpx) saturate(1.25);
 }
 
 .ghost-btn,
@@ -404,19 +426,20 @@ const handleSubmit = async () => {
   height: 86rpx;
   line-height: 86rpx;
   border: none;
-  border-radius: 8rpx;
+  border-radius: 26rpx;
   padding: 0;
   font-size: 29rpx;
   font-weight: 700;
 }
 
 .ghost-btn {
-  background: #eef3f8;
+  background: rgba(238, 246, 255, 0.86);
   color: #475467;
 }
 
 .submit-btn {
-  background: #1d4ed8;
+  background: linear-gradient(135deg, #2f7ed8, #1f447a);
   color: #ffffff;
+  box-shadow: 0 14rpx 28rpx rgba(31, 68, 122, 0.20);
 }
 </style>

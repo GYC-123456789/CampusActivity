@@ -12,6 +12,7 @@
           :src="msg.sender.avatarUrl"
           class="message-avatar"
           mode="aspectFill"
+          @click.stop="toProfile(msg.sender)"
         />
         <view class="message-content">
           <text class="message-text">{{ msg.content }}</text>
@@ -38,6 +39,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { useStore } from 'vuex'
 import { orderApi } from '@/api/index.js'
 import { formatTime, showError } from '@/utils/util.js'
+import { goUserProfile } from '@/utils/user-navigation.js'
 
 const store = useStore()
 
@@ -84,6 +86,10 @@ const scrollToBottom = () => {
   setTimeout(() => {
     scrollTop.value = 99999
   }, 100)
+}
+
+const toProfile = (user) => {
+  goUserProfile(user)
 }
 
 onLoad((options) => {

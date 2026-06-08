@@ -6,7 +6,6 @@
           <text class="page-title">预约订单</text>
           <text class="page-subtitle">{{ hasActiveFilter ? filterSummary : '发现正在等待加入的校园活动' }}</text>
         </view>
-        <button class="top-action" @click="goCreate">发布</button>
       </view>
     </view>
 
@@ -82,7 +81,7 @@
           </view>
 
           <view class="item-actions">
-            <text class="publisher">{{ order.user ? order.user.nickname : '匿名用户' }}</text>
+            <text class="publisher" @click.stop="toProfile(order.user)">{{ order.user ? order.user.nickname : '匿名用户' }}</text>
             <button
               class="card-action"
               :class="{ danger: isPublisher(order), disabled: isActionDisabled(order) }"
@@ -103,18 +102,20 @@
       </view>
     </scroll-view>
 
-    <view class="fab" @click="goCreate">
-      <view class="fab-h"></view>
-      <view class="fab-v"></view>
-    </view>
+    <glass-publish-menu />
   </view>
 </template>
 
 <script>
 import { orderApi } from '@/api/index.js'
 import { ACTIVITY_TYPE, ACTIVITY_TYPE_MAP, CAMPUS, CAMPUS_MAP, ORDER_STATUS_MAP } from '@/utils/constants.js'
+import GlassPublishMenu from '@/components/glass-publish-menu/glass-publish-menu.vue'
+import { goUserProfile } from '@/utils/user-navigation.js'
 
 export default {
+  components: {
+    GlassPublishMenu
+  },
   data() {
     return {
       orderList: [],
@@ -426,6 +427,9 @@ export default {
       }
       uni.navigateTo({ url: '/pages/order/create' })
     },
+    toProfile(user) {
+      goUserProfile(user)
+    },
     getActivityTypeText(type) {
       return ACTIVITY_TYPE_MAP[type] || '其他'
     },
@@ -456,7 +460,10 @@ export default {
 .page {
   width: 100%;
   height: 100vh;
-  background: #f3f5f9;
+  background:
+    radial-gradient(circle at 18% 2%, rgba(78, 161, 255, 0.16), transparent 32%),
+    radial-gradient(circle at 92% 0%, rgba(30, 194, 214, 0.10), transparent 28%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4fb 52%, #f9fbff 100%);
   display: flex;
   flex-direction: column;
 }
@@ -511,11 +518,17 @@ export default {
 
 .filter-card {
   margin: -38rpx 30rpx 12rpx;
-  padding: 18rpx;
-  background: #ffffff;
-  border-radius: 12rpx;
-  box-shadow: 0 12rpx 28rpx rgba(23, 42, 79, 0.14);
+  padding: 20rpx;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(238, 248, 255, 0.72));
+  border: 1rpx solid rgba(255, 255, 255, 0.76);
+  border-radius: 30rpx;
+  box-shadow:
+    0 18rpx 38rpx rgba(23, 42, 79, 0.13),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
   flex-shrink: 0;
+  -webkit-backdrop-filter: blur(24rpx) saturate(1.26);
+  backdrop-filter: blur(24rpx) saturate(1.26);
 }
 
 .filter-grid {
@@ -527,8 +540,9 @@ export default {
 .filter-item {
   min-height: 64rpx;
   padding: 0 14rpx;
-  background: #f3f5f9;
-  border-radius: 8rpx;
+  background: rgba(255, 255, 255, 0.64);
+  border: 1rpx solid rgba(222, 235, 248, 0.9);
+  border-radius: 18rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -598,12 +612,28 @@ export default {
 }
 
 .item-box {
-  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(244, 250, 255, 0.76));
   padding: 26rpx;
-  border-radius: 12rpx;
+  border-radius: 30rpx;
   margin-bottom: 18rpx;
-  box-shadow: 0 8rpx 22rpx rgba(22, 34, 51, 0.06);
-  border-left: 6rpx solid #1f447a;
+  box-shadow:
+    0 18rpx 38rpx rgba(22, 47, 84, 0.10),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(255, 255, 255, 0.76);
+}
+
+.item-box::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 26rpx;
+  bottom: 26rpx;
+  width: 7rpx;
+  border-radius: 0 999rpx 999rpx 0;
+  background: linear-gradient(180deg, #2f7ed8, #1ec2d6);
 }
 
 .item-header {
@@ -615,8 +645,10 @@ export default {
 .type-mark {
   width: 62rpx;
   height: 62rpx;
-  border-radius: 12rpx;
-  background: #edf4ff;
+  border-radius: 20rpx;
+  background:
+    radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.92), transparent 42%),
+    linear-gradient(145deg, rgba(237, 247, 255, 0.96), rgba(210, 231, 255, 0.78));
   color: #1f447a;
   display: flex;
   align-items: center;
@@ -674,8 +706,9 @@ export default {
   grid-template-columns: 1.3fr 0.7fr 1fr;
   gap: 12rpx;
   padding: 18rpx;
-  background: #f8fafc;
-  border-radius: 10rpx;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1rpx solid rgba(229, 237, 247, 0.86);
+  border-radius: 22rpx;
 }
 
 .meta-cell {
@@ -716,10 +749,12 @@ export default {
   padding: 0 22rpx;
   border: none;
   border-radius: 999rpx;
-  background: #1f447a;
+  background:
+    linear-gradient(135deg, rgba(47, 126, 216, 0.96), rgba(31, 68, 122, 0.96));
   color: #ffffff;
   font-size: 24rpx;
   line-height: 62rpx;
+  box-shadow: 0 12rpx 24rpx rgba(31, 68, 122, 0.18);
 }
 
 .card-action.danger {
@@ -757,35 +792,4 @@ export default {
   color: #8a94a6;
 }
 
-.fab {
-  position: fixed;
-  right: 30rpx;
-  bottom: 180rpx;
-  width: 94rpx;
-  height: 94rpx;
-  background: #1f447a;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-  box-shadow: 0 10rpx 24rpx rgba(31, 68, 122, 0.32);
-}
-
-.fab-h,
-.fab-v {
-  position: absolute;
-  background: #ffffff;
-  border-radius: 999rpx;
-}
-
-.fab-h {
-  width: 36rpx;
-  height: 6rpx;
-}
-
-.fab-v {
-  width: 6rpx;
-  height: 36rpx;
-}
 </style>
