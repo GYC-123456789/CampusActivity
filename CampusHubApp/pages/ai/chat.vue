@@ -1,6 +1,9 @@
 <template>
   <view class="chat-container">
     <view class="app-top">
+      <button class="back-button" @click="goBack">
+        <view class="back-chevron"></view>
+      </button>
       <view class="title-row">
         <view>
           <text class="page-title">AI 助手</text>
@@ -164,6 +167,15 @@ const saveDraft = () => {
 
 const clearDraft = () => {
   uni.removeStorageSync(DRAFT_KEY)
+}
+
+const goBack = () => {
+  const pages = getCurrentPages()
+  if (pages.length > 1) {
+    uni.navigateBack()
+    return
+  }
+  uni.switchTab({ url: '/pages/index/index' })
 }
 
 const loadMessages = async (cid) => {
@@ -635,7 +647,37 @@ onUnmounted(abortActiveStream)
   flex-shrink: 0;
 }
 
+.back-button {
+  position: absolute;
+  left: 24rpx;
+  top: 36rpx;
+  z-index: 2;
+  width: 58rpx;
+  height: 58rpx;
+  padding: 0;
+  border: 1rpx solid rgba(255, 255, 255, 0.32);
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-button::after {
+  border: none;
+}
+
+.back-chevron {
+  width: 18rpx;
+  height: 18rpx;
+  border-left: 4rpx solid #ffffff;
+  border-bottom: 4rpx solid #ffffff;
+  transform: rotate(45deg);
+  margin-left: 6rpx;
+}
+
 .title-row {
+  padding-left: 76rpx;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;

@@ -395,8 +395,8 @@ export default {
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10rpx;
-  padding: 24rpx 18rpx;
+  gap: 12rpx;
+  padding: 26rpx 18rpx 24rpx;
   background-color: #ffffff;
   margin: 18rpx 30rpx;
   border-radius: 12rpx;
@@ -407,85 +407,246 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12rpx;
+  gap: 14rpx;
+  border-radius: 22rpx;
+  transition: transform 0.18s ease, background-color 0.18s ease;
+}
+
+.menu-item:active {
+  background: rgba(31, 68, 122, 0.05);
+  transform: translateY(2rpx) scale(0.97);
 }
 
 .menu-icon {
-  width: 66rpx;
-  height: 66rpx;
-  border-radius: 12rpx;
-  background: #edf4ff;
+  width: 82rpx;
+  height: 82rpx;
+  border-radius: 25rpx;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(223, 238, 255, 0.72));
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #1f447a;
+  overflow: hidden;
+  border: 1rpx solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 14rpx 30rpx rgba(31, 68, 122, 0.14),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.96);
+}
+
+.menu-icon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.86), transparent 48%);
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.menu-icon::after {
+  content: "";
+  position: absolute;
+  right: -18rpx;
+  bottom: -18rpx;
+  width: 50rpx;
+  height: 50rpx;
+  border-radius: 999rpx;
+  background: rgba(77, 156, 232, 0.16);
+}
+
+.icon-calendar {
+  background:
+    linear-gradient(145deg, rgba(247, 252, 255, 0.96), rgba(217, 236, 255, 0.74)) !important;
+}
+
+.icon-feed {
+  background:
+    linear-gradient(145deg, rgba(248, 253, 255, 0.96), rgba(224, 246, 250, 0.74)) !important;
+}
+
+.icon-plus {
+  background:
+    linear-gradient(145deg, rgba(248, 252, 255, 0.96), rgba(226, 239, 255, 0.76)) !important;
+}
+
+.icon-ai {
+  background:
+    linear-gradient(145deg, rgba(249, 253, 255, 0.98), rgba(219, 238, 255, 0.78)) !important;
 }
 
 .calendar-line {
   position: absolute;
-  top: 18rpx;
-  left: 16rpx;
-  right: 16rpx;
-  height: 4rpx;
-  background: #1f447a;
+  z-index: 2;
+  top: 19rpx;
+  left: 18rpx;
+  width: 46rpx;
+  height: 36rpx;
+  border: 4rpx solid #1f447a;
+  border-top-width: 11rpx;
+  border-radius: 13rpx;
+  background: rgba(255, 255, 255, 0.68);
+  box-sizing: border-box;
+}
+
+.calendar-line::before,
+.calendar-line::after {
+  content: "";
+  position: absolute;
+  top: -14rpx;
+  width: 5rpx;
+  height: 12rpx;
   border-radius: 999rpx;
+  background: #1f447a;
+}
+
+.calendar-line::before {
+  left: 8rpx;
+}
+
+.calendar-line::after {
+  right: 8rpx;
 }
 
 .calendar-dot-row {
+  position: absolute;
+  z-index: 2;
+  left: 28rpx;
+  top: 42rpx;
   display: flex;
   gap: 6rpx;
-  margin-top: 18rpx;
 }
 
 .calendar-dot-row view {
-  width: 8rpx;
-  height: 8rpx;
+  width: 7rpx;
+  height: 7rpx;
   border-radius: 50%;
-  background: #1f447a;
+  background: rgba(31, 68, 122, 0.68);
 }
 
 .feed-line {
-  width: 34rpx;
-  height: 5rpx;
+  position: relative;
+  z-index: 3;
+  width: 7rpx;
+  height: 7rpx;
   background: #1f447a;
-  border-radius: 999rpx;
-  margin: 4rpx 0;
+  border-radius: 50%;
+  margin: 0 3rpx;
+}
+
+.icon-feed::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 18rpx;
+  top: 21rpx;
+  width: 48rpx;
+  height: 36rpx;
+  border: 4rpx solid #1f447a;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.58);
+  box-sizing: border-box;
+}
+
+.icon-feed::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: 25rpx;
+  bottom: 20rpx;
+  width: 13rpx;
+  height: 13rpx;
+  border-left: 4rpx solid #1f447a;
+  border-bottom: 4rpx solid #1f447a;
+  border-radius: 0 0 0 5rpx;
+  transform: skew(-20deg);
 }
 
 .feed-line.wide {
-  width: 42rpx;
+  width: 7rpx;
 }
 
 .feed-line.short {
-  width: 24rpx;
+  width: 7rpx;
+  opacity: 1;
 }
 
 .plus-h,
 .plus-v {
   position: absolute;
+  z-index: 2;
   background: #1f447a;
   border-radius: 999rpx;
+  box-shadow: 0 6rpx 12rpx rgba(31, 68, 122, 0.18);
+}
+
+.icon-plus::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  width: 50rpx;
+  height: 50rpx;
+  border-radius: 18rpx;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(219, 236, 255, 0.46));
+  border: 3rpx solid rgba(31, 68, 122, 0.14);
 }
 
 .plus-h {
-  width: 34rpx;
-  height: 6rpx;
+  width: 32rpx;
+  height: 8rpx;
 }
 
 .plus-v {
-  width: 6rpx;
-  height: 34rpx;
+  width: 8rpx;
+  height: 32rpx;
+}
+
+.icon-ai::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 15rpx;
+  top: 18rpx;
+  width: 8rpx;
+  height: 8rpx;
+  background: #1f447a;
+  border-radius: 999rpx;
+  box-shadow:
+    0 -8rpx 0 -2rpx #1f447a,
+    0 8rpx 0 -2rpx #1f447a,
+    -8rpx 0 0 -2rpx #1f447a,
+    8rpx 0 0 -2rpx #1f447a;
+  opacity: 0.52;
+}
+
+.icon-ai::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  right: 14rpx;
+  top: 16rpx;
+  width: 11rpx;
+  height: 11rpx;
+  border-radius: 999rpx;
+  background: rgba(31, 68, 122, 0.22);
+  box-shadow: -5rpx 30rpx 0 rgba(25, 128, 178, 0.20);
 }
 
 .icon-ai text {
-  font-size: 24rpx;
+  position: relative;
+  z-index: 2;
+  font-size: 28rpx;
   font-weight: 800;
+  letter-spacing: 0;
+  color: #1f447a;
+  text-shadow: 0 6rpx 12rpx rgba(31, 68, 122, 0.12);
 }
 
 .menu-text {
-  font-size: 23rpx;
+  font-size: 24rpx;
   color: #253044;
+  font-weight: 700;
   white-space: nowrap;
 }
 
