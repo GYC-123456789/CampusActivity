@@ -1,12 +1,12 @@
 @startuml
-title CampusCompanion Component Diagram
+title CampusHub Component Diagram
 top to bottom direction
 skinparam shadowing false
 skinparam componentStyle rectangle
 
 package "Presentation Layer" {
-  [CampusCompanionApp\nuni-app + Vuex] as APP
-  [CampusCompanionWeb\nVue3 + Pinia + Element Plus] as WEB
+  [CampusHubApp\nuni-app + Vuex] as APP
+  [CampusHubWeb\nVue3 + Pinia + Element Plus] as WEB
 }
 
 package "Backend Layer" {
@@ -18,7 +18,7 @@ package "Backend Layer" {
 }
 
 package "AI Layer" {
-  [CampusCompanionAgent\nFastAPI + LangGraph :5001] as AGENT
+  [CampusHubAgent\nFastAPI + LangGraph :5001] as AGENT
   [Main Agent\nReAct] as MAIN
   [Order Agent] as SUB1
   [Social Agent] as SUB2

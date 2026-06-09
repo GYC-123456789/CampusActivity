@@ -1,5 +1,5 @@
 @startuml
-title CampusCompanion Use Case Diagram
+title CampusHub Use Case Diagram
 left to right direction
 skinparam shadowing false
 
@@ -7,7 +7,7 @@ actor User
 actor Admin
 actor "AI Assistant" as AI
 
-rectangle "CampusCompanion Platform" {
+rectangle "CampusHub Platform" {
   usecase "Register / Login" as UC1
   usecase "Reset Password" as UC2
   usecase "Edit Profile" as UC3

@@ -1,10 +1,10 @@
 @startuml
-title CampusCompanionBackend Package Diagram
+title CampusHubBackend Package Diagram
 left to right direction
 skinparam shadowing false
 skinparam packageStyle rectangle
 
-package "dev.campuscompanionbackend" {
+package "dev.campushubbackend" {
   package "controller" as controller
   package "service" as service
   package "service.impl" as serviceimpl
